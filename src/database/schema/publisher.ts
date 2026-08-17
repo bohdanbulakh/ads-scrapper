@@ -6,7 +6,7 @@ export const publisher = pgTable('publishers', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
 
   name: text('name').notNull(),
-  domain: text('domain'),
+  domain: text('domain').notNull(),
   lastFetchedFile: timestamp('last_fetched_file'),
   nextToFetchFile: timestamp('next_to_fetch_file'),
 

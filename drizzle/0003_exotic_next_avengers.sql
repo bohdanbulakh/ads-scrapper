@@ -1,0 +1,1 @@
+ALTER TABLE "publishers" ALTER COLUMN "domain" SET NOT NULL;
