@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { bundleSource } from '@/database/schema/bundle-source';
 import { publisher } from '@/database/schema/publisher';
+import { relations } from 'drizzle-orm';
 
 export const bundle = pgTable('bundles', {
   id: uuid('id').primaryKey().defaultRandom().notNull(),
@@ -18,3 +19,10 @@ export const bundle = pgTable('bundles', {
     .notNull()
     .$onUpdate(() => new Date()),
 });
+
+export const bundleRelations = relations(bundle, ({ one }) => ({
+  publisher: one(publisher, {
+    fields: [bundle.publisherId],
+    references: [publisher.id],
+  }),
+}));
