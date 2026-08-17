@@ -8,6 +8,7 @@ export const publisher = pgTable('publishers', {
   name: text('name').notNull(),
   domain: text('domain'),
   lastFetchedFile: timestamp('last_fetched_file'),
+  nextToFetchFile: timestamp('next_to_fetch_file'),
 
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')

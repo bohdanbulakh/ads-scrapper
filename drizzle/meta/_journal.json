@@ -15,6 +15,13 @@
       "when": 1786990840722,
       "tag": "0001_secret_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786992774755,
+      "tag": "0002_empty_tarot",
+      "breakpoints": true
     }
   ]
 }

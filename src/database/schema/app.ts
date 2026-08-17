@@ -9,6 +9,7 @@ export const app = pgTable('apps', {
   bundleId: text('bundle_id').notNull(),
   source: bundleSource('source').notNull(),
   lastFetchedPublisher: timestamp('last_fetched_publisher'),
+  nextToFetchPublisher: timestamp('next_to_fetch_publisher'),
 
   publisherId: uuid('publisher_id').references(() => publisher.id, {
     onDelete: 'set null',
