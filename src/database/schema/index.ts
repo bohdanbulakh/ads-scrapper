@@ -1,3 +1,3 @@
 export * from './bundle-source';
-export * from './bundle';
+export * from './app';
 export * from './publisher';

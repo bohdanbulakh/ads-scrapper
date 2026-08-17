@@ -3,7 +3,7 @@ import { bundleSource } from '@/database/schema/bundle-source';
 import { publisher } from '@/database/schema/publisher';
 import { relations } from 'drizzle-orm';
 
-export const bundle = pgTable('bundles', {
+export const app = pgTable('apps', {
   id: uuid('id').primaryKey().defaultRandom().notNull(),
 
   bundleId: text('bundle_id').notNull(),
@@ -20,9 +20,9 @@ export const bundle = pgTable('bundles', {
     .$onUpdate(() => new Date()),
 });
 
-export const bundleRelations = relations(bundle, ({ one }) => ({
+export const bundleRelations = relations(app, ({ one }) => ({
   publisher: one(publisher, {
-    fields: [bundle.publisherId],
+    fields: [app.publisherId],
     references: [publisher.id],
   }),
 }));

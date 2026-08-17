@@ -1,8 +1,8 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { bundle } from '@/database/schema/bundle';
+import { app } from '@/database/schema/app';
 
-export const publisher = pgTable('publisher', {
+export const publisher = pgTable('publishers', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
 
   name: text('name').notNull(),
@@ -16,5 +16,5 @@ export const publisher = pgTable('publisher', {
 });
 
 export const publisherRelations = relations(publisher, ({ many }) => ({
-  bundles: many(bundle),
+  apps: many(app),
 }));

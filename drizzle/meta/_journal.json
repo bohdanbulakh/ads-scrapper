@@ -8,6 +8,13 @@
       "when": 1786978055363,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786990840722,
+      "tag": "0001_secret_iron_monger",
+      "breakpoints": true
     }
   ]
 }
