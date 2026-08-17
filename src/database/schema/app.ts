@@ -20,9 +20,13 @@ export const app = pgTable('apps', {
     .$onUpdate(() => new Date()),
 });
 
-export const bundleRelations = relations(app, ({ one }) => ({
+export const appRelations = relations(app, ({ one }) => ({
   publisher: one(publisher, {
     fields: [app.publisherId],
     references: [publisher.id],
   }),
 }));
+
+export type AppSelectModel = typeof app.$inferSelect;
+export type AppInsertModel = typeof app.$inferInsert;
+export type AppUpdateModel = Partial<AppSelectModel>;

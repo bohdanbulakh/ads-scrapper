@@ -18,3 +18,7 @@ export const publisher = pgTable('publishers', {
 export const publisherRelations = relations(publisher, ({ many }) => ({
   apps: many(app),
 }));
+
+export type PublisherSelectModel = typeof publisher.$inferSelect;
+export type PublisherInsertModel = typeof publisher.$inferInsert;
+export type PublisherUpdateModel = Partial<PublisherSelectModel>;
