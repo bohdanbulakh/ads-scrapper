@@ -67,9 +67,113 @@ $ docker compose down -v
 Data is persisted in the named volumes `postgres_data` and `redis_data`. Redis
 runs with `--requirepass` and AOF persistence enabled.
 
-Set `POSTGRES_HOST`/`REDIS_HOST` to `localhost` when running the app on the host,
-or to the service names `postgres`/`redis` when running it inside the compose
+Use `localhost` in `DATABASE_URL`/`REDIS_HOST` when running the app on the host,
+or the service names `postgres`/`redis` when running it inside the compose
 network.
+
+The app reads `DATABASE_URL` and `REDIS_*`; `POSTGRES_*` exists only to configure
+the postgres container and the published host port. Keep the two in sync.
+
+### Config layer
+
+`src/common/config/` holds one file per namespace under `schemas/`, each
+exporting three things: the `XConfig` interface, an `xConfig()` factory that
+reads `process.env`, and an `xEnvSchema` object of Joi rules.
+
+```
+src/common/config/
+  schemas/app-config.ts        AppConfig      | appConfig()      | appEnvSchema
+  schemas/database-config.ts   DatabaseConfig | databaseConfig() | databaseEnvSchema
+  schemas/redis-config.ts      RedisConfig    | redisConfig()    | redisEnvSchema
+  configuration.ts             RootConfig — composes the factories
+  env.validation.ts            spreads the rule objects into one Joi.object()
+  config-infra.module.ts       ConfigInfraModule (global)
+  extended-config.service.ts   ExtendedConfigService
+```
+
+Adding a variable means touching one schema file plus `configuration.ts`.
+
+Config is read through `ExtendedConfigService`, which infers types from
+`RootConfig` and throws on a missing path instead of returning `undefined`:
+
+```ts
+constructor(private readonly config: ExtendedConfigService) {}
+
+this.config.get('database.url'); // string
+this.config.get('redis.port'); // number
+this.config.get('redis.nope'); // Error: NotFoundConfig: redis.nope
+```
+
+### Validation
+
+The environment is validated with Joi at startup, so a bad `.env` fails the boot
+instead of surfacing later as a connection error:
+
+```
+Error: Config validation error: "NODE_ENV" must be one of [development, test, production]
+"REDIS_PORT" must be a valid port
+```
+
+Validation runs with `abortEarly: false`, so every problem is reported at once,
+and `.unknown(true)` lets unrelated variables (including the `POSTGRES_*` ones
+that only docker-compose reads) pass through.
+
+The Joi schema is the single source of truth for defaults and required-ness —
+`DATABASE_URL` and `REDIS_PASSWORD` are required, everything else defaults.
+Joi's defaults are written back onto `process.env` before the config factories
+run, so add new variables to the schema rather than defaulting them at the point
+of use.
+
+## Database (Drizzle ORM)
+
+Schema lives in `src/database/schema/`, migrations are generated into `drizzle/`
+and are meant to be committed.
+
+```bash
+# after editing the schema, generate a migration
+$ yarn db:generate --name add_something
+
+# apply pending migrations
+$ yarn db:migrate
+
+# push the schema straight to the db without a migration file (dev only)
+$ yarn db:push
+
+# browse the data
+$ yarn db:studio
+```
+
+`DatabaseModule` is global and exports the `DRIZZLE` provider:
+
+```ts
+import { Inject, Injectable } from '@nestjs/common';
+import { DRIZZLE, DrizzleDatabase } from '@/database/database.constants';
+import { ads } from '@/database/schema';
+
+@Injectable()
+export class AdsService {
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDatabase) {}
+
+  findAll() {
+    return this.db.select().from(ads);
+  }
+}
+```
+
+## Queues (BullMQ)
+
+`QueueModule` is global, configures the BullMQ Redis connection from `.env` and
+registers the `scrape` queue. Producer: `AdsFileService`, consumer:
+`AdsFileProcessor` (`src/queue/`).
+
+```ts
+constructor(private readonly scrape: ScrapeService) {}
+
+await this.scrape.enqueue({ source: 'olx', url: 'https://…' });
+```
+
+Default job options (3 attempts, exponential backoff, completed/failed
+retention) are set once in `queue.module.ts`.
 
 ## Compile and run the project
 
@@ -83,6 +187,23 @@ $ yarn run start:dev
 # production mode
 $ yarn run start:prod
 ```
+
+The `start` scripts pass `--no-shell` on purpose. By default the Nest CLI spawns
+the app through `/bin/sh -c`, and it forwards SIGINT to that shell rather than to
+node — the shell dies without passing the signal on, orphaning the app and
+leaving port 3000 held (`EADDRINUSE` on the next start). `--no-shell` makes the
+CLI spawn node directly so the signal reaches it.
+
+One case this does not cover: signalling the **yarn** process alone, which does
+not forward to the CLI. A terminal ctrl+c is unaffected (it signals the whole
+process group), but an IDE run configuration that stops by killing only the yarn
+PID will still orphan the app. Point such configs at
+`node_modules/.bin/nest start --watch --no-shell` directly, or enable
+"kill process tree". To clear a stale one: `pkill -f dist/main`.
+
+The app also refuses to start if the database is unreachable — `onModuleInit`
+probes the pool once and lets the error propagate, so `bootstrap()` logs it and
+exits 1 rather than serving traffic that fails on every request.
 
 ## Run tests
 

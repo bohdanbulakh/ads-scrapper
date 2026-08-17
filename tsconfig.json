@@ -17,6 +17,10 @@
       "@/*": ["./src/*"]
     },
     "incremental": true,
+    // Must live inside outDir: nest-cli's `deleteOutDir` wipes dist on every
+    // build, and a build-info file left outside it makes tsc believe the
+    // (now deleted) outputs are still current, emitting nothing.
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
