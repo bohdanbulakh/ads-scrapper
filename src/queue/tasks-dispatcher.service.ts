@@ -1,0 +1,22 @@
+import { Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { BundleInfoService } from '@/queue/bundle-info/bundle-info.service';
+import { AdsFileService } from '@/queue/ads-file/ads-file.service';
+
+@Injectable()
+export class TasksDispatcherService {
+  constructor(
+    private readonly adsFileService: AdsFileService,
+    private readonly bundleInfoService: BundleInfoService,
+  ) {}
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async adsFileDispatcher(): Promise<void> {
+    await this.adsFileService.enqueue();
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async appInfoDispatcher(): Promise<void> {
+    await this.bundleInfoService.enqueue();
+  }
+}
