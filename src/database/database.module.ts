@@ -3,7 +3,7 @@ import {
   Inject,
   Logger,
   Module,
-  OnModuleDestroy,
+  OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -34,23 +34,14 @@ import * as schema from '@/database/schema';
   ],
   exports: [DRIZZLE],
 })
-export class DatabaseModule implements OnModuleDestroy, OnModuleInit {
+export class DatabaseModule implements OnApplicationShutdown, OnModuleInit {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDatabase) {}
 
-  // Requires `app.enableShutdownHooks()` (see main.ts) to run on SIGTERM/SIGINT.
-  async onModuleDestroy(): Promise<void> {
+  async onApplicationShutdown(): Promise<void> {
     await this.db.$client.end();
   }
 
-  /**
-   * `Pool` connects lazily, so reach the database once to fail at boot. The
-   * error is deliberately left to propagate: an app that starts without a
-   * database would accept traffic and fail every request instead.
-   */
   async onModuleInit(): Promise<void> {
-    // The client MUST be released: `pool.end()` waits for every checked-out
-    // client, so leaking one here makes onModuleDestroy hang forever and the
-    // process stop responding to SIGINT (ctrl+c).
     const client = await this.db.$client.connect();
     client.release();
 

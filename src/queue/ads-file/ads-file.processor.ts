@@ -1,4 +1,4 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
@@ -8,9 +8,10 @@ import {
   AdsFileJobResult,
 } from '@/queue/ads-file/ads-file.constants';
 import { AdsFileService } from '@/queue/ads-file/ads-file.service';
+import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
 
 @Processor(ADS_FILE_QUEUE)
-export class AdsFileProcessor extends WorkerHost {
+export class AdsFileProcessor extends ExtendedWorkerHost {
   constructor(private readonly adsFileService: AdsFileService) {
     super();
   }
@@ -35,6 +36,8 @@ export class AdsFileProcessor extends WorkerHost {
 
   @OnWorkerEvent('drained')
   async onDrained(): Promise<void> {
+    if (this.isShuttingDown) return;
+
     await this.adsFileService.enqueue();
   }
 

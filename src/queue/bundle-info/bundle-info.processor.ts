@@ -1,4 +1,4 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
@@ -8,9 +8,10 @@ import {
   BundleInfoJobResult,
 } from '@/queue/bundle-info/bundle-info.constants';
 import { BundleInfoService } from '@/queue/bundle-info/bundle-info.service';
+import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
 
 @Processor(BUNDLE_INFO_QUEUE)
-export class BundleInfoProcessor extends WorkerHost {
+export class BundleInfoProcessor extends ExtendedWorkerHost {
   constructor(private readonly bundleInfoService: BundleInfoService) {
     super();
   }
@@ -35,6 +36,8 @@ export class BundleInfoProcessor extends WorkerHost {
 
   @OnWorkerEvent('drained')
   async onDrained(): Promise<void> {
+    if (this.isShuttingDown) return;
+
     await this.bundleInfoService.enqueue();
   }
 
