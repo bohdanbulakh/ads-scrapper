@@ -59,9 +59,34 @@ services:
     networks:
       - adds-scrapper
 
+  minio:
+    image: minio/minio:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-adds-scrapper}-minio
+    restart: unless-stopped
+    env_file:
+      - .env
+    # The image reads MINIO_ROOT_USER / MINIO_ROOT_PASSWORD to create the
+    # initial credentials; the app authenticates with the same pair via S3_*.
+    command: ['server', '/data', '--console-address', ':9001']
+    ports:
+      # 9000 is the S3 API, 9001 the web console.
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'mc ready local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - adds-scrapper
+
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
 
 networks:
   adds-scrapper:
