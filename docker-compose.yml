@@ -1,0 +1,68 @@
+name: adds-scrapper
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-adds-scrapper}-postgres
+    restart: unless-stopped
+    # Values come from the root `.env` (see `.env.example`). The postgres image
+    # reads POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB on first boot to
+    # create the superuser and the initial database.
+    env_file:
+      - .env
+    ports:
+      # Only the host port is configurable; the server always listens on 5432
+      # inside the compose network.
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - adds-scrapper
+
+  redis:
+    image: redis:8-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-adds-scrapper}-redis
+    restart: unless-stopped
+    env_file:
+      - .env
+    # The redis image has no REDIS_PASSWORD convention, so the password is
+    # passed explicitly. `:?` fails the run early if it is missing from `.env`.
+    command:
+      [
+        'redis-server',
+        '--requirepass',
+        '${REDIS_PASSWORD:?REDIS_PASSWORD is required — copy .env.example to .env}',
+        '--appendonly',
+        'yes',
+      ]
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - adds-scrapper
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  adds-scrapper:
+    driver: bridge

@@ -31,6 +31,46 @@
 $ yarn install
 ```
 
+## Environment variables
+
+All ports, credentials and connection settings live in the root `.env` file.
+`.env` is gitignored — `.env.example` is the committed template, so mirror any
+new variable there.
+
+```bash
+$ cp .env.example .env
+```
+
+Docker Compose auto-loads the root `.env`, so the same file drives both the
+published host ports in `docker-compose.yml` and the environment passed into the
+containers via `env_file`.
+
+## Infrastructure (PostgreSQL + Redis)
+
+```bash
+# start postgres + redis in the background
+$ docker compose up -d
+
+# check health
+$ docker compose ps
+
+# tail logs
+$ docker compose logs -f
+
+# stop (keeps data)
+$ docker compose down
+
+# stop and wipe the postgres/redis volumes
+$ docker compose down -v
+```
+
+Data is persisted in the named volumes `postgres_data` and `redis_data`. Redis
+runs with `--requirepass` and AOF persistence enabled.
+
+Set `POSTGRES_HOST`/`REDIS_HOST` to `localhost` when running the app on the host,
+or to the service names `postgres`/`redis` when running it inside the compose
+network.
+
 ## Compile and run the project
 
 ```bash
