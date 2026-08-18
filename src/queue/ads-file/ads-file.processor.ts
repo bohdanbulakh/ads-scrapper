@@ -6,7 +6,6 @@ import {
   ADS_FILE_QUEUE,
   AdsFileJobData,
   AdsFileJobResult,
-
 } from '@/queue/ads-file/ads-file.constants';
 import { AdsFileService } from '@/queue/ads-file/ads-file.service';
 import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
@@ -52,8 +51,8 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
       // update status
       await this.publisherDao.updateById(publisherId, {
         lastFetchedFile: new Date(),
-        fileFetchStatus: AdsFileFetchStatus.NOT_FOUND
-      })
+        fileFetchStatus: AdsFileFetchStatus.NOT_FOUND,
+      });
 
       return { success: false, status: AdsFileFetchStatus.NOT_FOUND };
     }
@@ -71,8 +70,8 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
         // update status
         await this.publisherDao.updateById(publisherId, {
           lastFetchedFile: new Date(),
-          fileFetchStatus: AdsFileFetchStatus.REJECTED
-        })
+          fileFetchStatus: AdsFileFetchStatus.REJECTED,
+        });
 
         return { success: false, status: AdsFileFetchStatus.REJECTED };
       }
@@ -90,8 +89,8 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
       // update status
       await this.publisherDao.updateById(publisherId, {
         lastFetchedFile: new Date(),
-        fileFetchStatus: AdsFileFetchStatus.NOT_FOUND
-      })
+        fileFetchStatus: AdsFileFetchStatus.NOT_FOUND,
+      });
 
       return { success: false, status: AdsFileFetchStatus.NOT_FOUND };
     }
@@ -112,7 +111,8 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
     });
 
     return {
-      success: true, status: AdsFileFetchStatus.STORED
+      success: true,
+      status: AdsFileFetchStatus.STORED,
     };
   }
 

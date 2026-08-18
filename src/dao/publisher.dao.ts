@@ -28,10 +28,12 @@ export class PublisherDao {
           this.db
             .select({ id: publisher.id })
             .from(publisher)
-            .where(or(
-              lte(publisher.nextToFetchFile, sql`now()`),
-              isNull(publisher.nextToFetchFile),
-            ))
+            .where(
+              or(
+                lte(publisher.nextToFetchFile, sql`now()`),
+                isNull(publisher.nextToFetchFile),
+              ),
+            )
             .orderBy(asc(publisher.nextToFetchFile))
             .limit(limit)
             .for('update', { skipLocked: true }),

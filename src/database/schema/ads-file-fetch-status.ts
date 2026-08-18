@@ -10,4 +10,4 @@ export const adsFileFetchStatus = pgEnum('ads_file_fetch_status', [
   AdsFileFetchStatus.NOT_FOUND,
   AdsFileFetchStatus.REJECTED,
   AdsFileFetchStatus.STORED,
-])
+]);
