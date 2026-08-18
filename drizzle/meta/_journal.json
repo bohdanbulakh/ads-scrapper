@@ -36,6 +36,13 @@
       "when": 1787043427276,
       "tag": "0004_old_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787050193463,
+      "tag": "0005_publisher_fetch_status",
+      "breakpoints": true
     }
   ]
 }

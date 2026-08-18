@@ -1,6 +1,6 @@
 {
-  "id": "979a22a4-c820-4774-ac36-c72c918d72b0",
-  "prevId": "d37ffc96-0f78-4fa1-9e09-69b975b1eb09",
+  "id": "5b0f39e0-f40a-463d-9207-ffac3b89fde2",
+  "prevId": "979a22a4-c820-4774-ac36-c72c918d72b0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -37,6 +37,13 @@
         "next_to_fetch_publisher": {
           "name": "next_to_fetch_publisher",
           "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "publisher_fetch_status": {
+          "name": "publisher_fetch_status",
+          "type": "publisher_fetch_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
@@ -141,7 +148,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "publishers_domain_unique": {
+          "name": "publishers_domain_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "domain"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -163,6 +178,15 @@
         "NOT_FOUND",
         "REJECTED",
         "STORED"
+      ]
+    },
+    "public.publisher_fetch_status": {
+      "name": "publisher_fetch_status",
+      "schema": "public",
+      "values": [
+        "NOT_FOUND",
+        "NO_DOMAIN",
+        "RESOLVED"
       ]
     }
   },

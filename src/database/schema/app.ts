@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { bundleSource } from '@/database/schema/bundle-source';
 import { publisher } from '@/database/schema/publisher';
+import { publisherFetchStatus } from '@/database/schema/publisher-fetch-status';
 import { relations } from 'drizzle-orm';
 
 export const app = pgTable('apps', {
@@ -10,6 +11,7 @@ export const app = pgTable('apps', {
   source: bundleSource('source').notNull(),
   lastFetchedPublisher: timestamp('last_fetched_publisher'),
   nextToFetchPublisher: timestamp('next_to_fetch_publisher'),
+  publisherFetchStatus: publisherFetchStatus('publisher_fetch_status'),
 
   publisherId: uuid('publisher_id').references(() => publisher.id, {
     onDelete: 'set null',
