@@ -1,6 +1,7 @@
 import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
-import { app, AppSelectModel, AppUpdateModel } from '@/database/schema';
+import { app, AppSelectModel } from '@/database/schema';
+import { PublisherFetchStatus } from '@/database/schema/publisher-fetch-status';
 import { asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 
 export type ExpiredAppSelectModel = Pick<
@@ -36,7 +37,19 @@ export class AppDao {
       .returning({ id: app.id, bundleId: app.bundleId, source: app.source });
   }
 
-  async updateById(id: string, data: AppUpdateModel) {
-    await this.db.update(app).set(data).where(eq(app.id, id));
+  async markPublisherFetched(
+    id: string,
+    status: PublisherFetchStatus,
+    publisherId?: string,
+  ): Promise<void> {
+    await this.db
+      .update(app)
+      .set({
+        publisherFetchStatus: status,
+        ...(publisherId ? { publisherId } : {}),
+        lastFetchedPublisher: sql`now()`,
+        nextToFetchPublisher: sql`now() + interval '7 days'`,
+      })
+      .where(eq(app.id, id));
   }
 }

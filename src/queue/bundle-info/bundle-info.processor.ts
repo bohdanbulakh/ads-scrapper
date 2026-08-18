@@ -59,10 +59,10 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
       this.logger.warn(`No ${source} listing for "${bundleId}"`);
 
       // update status
-      await this.appDao.updateById(appId, {
-        lastFetchedPublisher: new Date(),
-        publisherFetchStatus: PublisherFetchStatus.NOT_FOUND,
-      });
+      await this.appDao.markPublisherFetched(
+        appId,
+        PublisherFetchStatus.NOT_FOUND,
+      );
 
       return { success: false, status: PublisherFetchStatus.NOT_FOUND };
     }
@@ -76,10 +76,10 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
       this.logger.warn(`No publisher domain for "${bundleId}"`);
 
       // update status
-      await this.appDao.updateById(appId, {
-        lastFetchedPublisher: new Date(),
-        publisherFetchStatus: PublisherFetchStatus.NO_DOMAIN,
-      });
+      await this.appDao.markPublisherFetched(
+        appId,
+        PublisherFetchStatus.NO_DOMAIN,
+      );
 
       return { success: false, status: PublisherFetchStatus.NO_DOMAIN };
     }
@@ -94,11 +94,11 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
       domain,
     });
 
-    await this.appDao.updateById(appId, {
+    await this.appDao.markPublisherFetched(
+      appId,
+      PublisherFetchStatus.RESOLVED,
       publisherId,
-      lastFetchedPublisher: new Date(),
-      publisherFetchStatus: PublisherFetchStatus.RESOLVED,
-    });
+    );
     await job.updateProgress(100);
 
     this.logger.log(`Resolved "${bundleId}" to "${publisherName}" (${domain})`);

@@ -4,8 +4,8 @@ import {
   publisher,
   PublisherInsertModel,
   PublisherSelectModel,
-  PublisherUpdateModel,
 } from '@/database/schema';
+import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
 import { asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<
@@ -43,10 +43,6 @@ export class PublisherDao {
       .returning({ id: publisher.id, domain: publisher.domain });
   }
 
-  /**
-   * One publisher backs many apps, so the same domain arrives over and over —
-   * insert it once and refresh the name on later hits.
-   */
   async upsertByDomain(data: PublisherInsertModel): Promise<string> {
     const [{ id }] = await this.db
       .insert(publisher)
@@ -60,7 +56,14 @@ export class PublisherDao {
     return id;
   }
 
-  async updateById(id: string, data: PublisherUpdateModel) {
-    await this.db.update(publisher).set(data).where(eq(publisher.id, id));
+  async markFileFetched(id: string, status: AdsFileFetchStatus): Promise<void> {
+    await this.db
+      .update(publisher)
+      .set({
+        fileFetchStatus: status,
+        lastFetchedFile: sql`now()`,
+        nextToFetchFile: sql`now() + interval '1 day'`,
+      })
+      .where(eq(publisher.id, id));
   }
 }

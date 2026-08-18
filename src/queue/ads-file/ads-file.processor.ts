@@ -49,10 +49,10 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
       this.logger.warn(`No ads.txt for "${domain}" (HTTP ${response.status})`);
 
       // update status
-      await this.publisherDao.updateById(publisherId, {
-        lastFetchedFile: new Date(),
-        fileFetchStatus: AdsFileFetchStatus.NOT_FOUND,
-      });
+      await this.publisherDao.markFileFetched(
+        publisherId,
+        AdsFileFetchStatus.NOT_FOUND,
+      );
 
       return { success: false, status: AdsFileFetchStatus.NOT_FOUND };
     }
@@ -68,10 +68,10 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
         this.logger.warn(`ads.txt for "${domain}" exceeds ${MAX_BYTES} bytes`);
 
         // update status
-        await this.publisherDao.updateById(publisherId, {
-          lastFetchedFile: new Date(),
-          fileFetchStatus: AdsFileFetchStatus.REJECTED,
-        });
+        await this.publisherDao.markFileFetched(
+          publisherId,
+          AdsFileFetchStatus.REJECTED,
+        );
 
         return { success: false, status: AdsFileFetchStatus.REJECTED };
       }
@@ -87,10 +87,10 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
       this.logger.warn(`ads.txt for "${domain}" looks like HTML, skipping`);
 
       // update status
-      await this.publisherDao.updateById(publisherId, {
-        lastFetchedFile: new Date(),
-        fileFetchStatus: AdsFileFetchStatus.NOT_FOUND,
-      });
+      await this.publisherDao.markFileFetched(
+        publisherId,
+        AdsFileFetchStatus.NOT_FOUND,
+      );
 
       return { success: false, status: AdsFileFetchStatus.NOT_FOUND };
     }
@@ -105,10 +105,10 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
     );
 
     // update status
-    await this.publisherDao.updateById(publisherId, {
-      lastFetchedFile: new Date(),
-      fileFetchStatus: AdsFileFetchStatus.STORED,
-    });
+    await this.publisherDao.markFileFetched(
+      publisherId,
+      AdsFileFetchStatus.STORED,
+    );
 
     return {
       success: true,
