@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 
 import { ExtendedConfigService } from '@/common/config/extended-config.service';
 import { AdsFileFetcher } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
-import { draw, simulateLatency } from '@/queue/fake/fake-fetch.util';
+import { applyHash, simulateLatency } from '@/queue/fake/fake-fetch.util';
 
 /**
  * Cumulative shares of the outcome space, in percent. Between them they cover
@@ -67,7 +67,7 @@ export class FakeAdsFileFetcher implements AdsFileFetcher {
       throw new Error(`fake fetch failed for "${domain}"`);
     }
 
-    const outcome = draw(domain, 0) % 100;
+    const outcome = applyHash(domain, 0) % 100;
 
     if (outcome < OK) return this.adsTxt(domain);
     if (outcome < NOT_FOUND) return new Response(null, { status: 404 });
@@ -81,7 +81,7 @@ export class FakeAdsFileFetcher implements AdsFileFetcher {
 
   /** A few hundred bytes to ~25 KB, which is the range real files fall in. */
   private adsTxt(domain: string): Response {
-    const seed = draw(domain, 1);
+    const seed = applyHash(domain, 1);
     const lines = [`# app-ads.txt for ${domain}`];
     const count = 20 + (seed % 400);
 
@@ -114,7 +114,7 @@ export class FakeAdsFileFetcher implements AdsFileFetcher {
       status: 200,
       headers: {
         'content-type':
-          draw(domain, 2) % 2 === 0
+          applyHash(domain, 2) % 2 === 0
             ? 'text/html; charset=utf-8'
             : 'text/plain; charset=utf-8',
       },

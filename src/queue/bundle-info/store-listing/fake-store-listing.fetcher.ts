@@ -5,7 +5,7 @@ import {
   StoreListing,
   StoreListingFetcher,
 } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
-import { draw, simulateLatency } from '@/queue/fake/fake-fetch.util';
+import { applyHash, simulateLatency } from '@/queue/fake/fake-fetch.util';
 
 const NOT_FOUND_SHARE = 8;
 const NO_WEBSITE_SHARE = 12;
@@ -37,11 +37,11 @@ export class FakeStoreListingFetcher implements StoreListingFetcher {
       throw new Error(`fake store lookup failed for "${bundleId}"`);
     }
 
-    const outcome = draw(bundleId, 0) % 100;
+    const outcome = applyHash(bundleId, 0) % 100;
 
     if (outcome < NOT_FOUND_SHARE) return null;
 
-    const publisherIndex = draw(bundleId, 1) % this.poolSize;
+    const publisherIndex = applyHash(bundleId, 1) % this.poolSize;
     const domain = `seed-${publisherIndex}.example`;
     const publisherName = `Seed Publisher ${publisherIndex}`;
 
@@ -53,7 +53,7 @@ export class FakeStoreListingFetcher implements StoreListingFetcher {
   }
 
   private website(domain: string, bundleId: string): string {
-    const variant = draw(bundleId, 2) % 100;
+    const variant = applyHash(bundleId, 2) % 100;
 
     // Values `toDomain()` genuinely has to reject: a non-http scheme, a
     // placeholder that is not a URL, and a host with no domain in it. Note that
