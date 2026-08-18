@@ -6,7 +6,7 @@ import {
   PublisherSelectModel,
 } from '@/database/schema';
 import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
-import { asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lte, not, or, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<
   PublisherSelectModel,
@@ -22,7 +22,7 @@ export class PublisherDao {
   ): Promise<ExpiredPublisherSelectModel[]> {
     return await this.db
       .update(publisher)
-      .set({ nextToFetchFile: sql`now() + interval '10 minutes'` })
+      .set({ locked: true })
       .where(
         inArray(
           publisher.id,
@@ -30,9 +30,12 @@ export class PublisherDao {
             .select({ id: publisher.id })
             .from(publisher)
             .where(
-              or(
-                lte(publisher.nextToFetchFile, sql`now()`),
-                isNull(publisher.nextToFetchFile),
+              and(
+                not(publisher.locked),
+                or(
+                  lte(publisher.nextToFetchFile, sql`now()`),
+                  isNull(publisher.nextToFetchFile),
+                ),
               ),
             )
             .orderBy(asc(publisher.nextToFetchFile))
@@ -61,9 +64,17 @@ export class PublisherDao {
       .update(publisher)
       .set({
         fileFetchStatus: status,
+        locked: false,
         lastFetchedFile: sql`now()`,
         nextToFetchFile: sql`now() + interval '1 day'`,
       })
+      .where(eq(publisher.id, id));
+  }
+
+  async unlockById(id: string): Promise<void> {
+    await this.db
+      .update(publisher)
+      .set({ locked: false })
       .where(eq(publisher.id, id));
   }
 }

@@ -1,4 +1,11 @@
-import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { bundleSource } from '@/database/schema/bundle-source';
 import { publisher } from '@/database/schema/publisher';
 import { publisherFetchStatus } from '@/database/schema/publisher-fetch-status';
@@ -18,6 +25,8 @@ export const app = pgTable(
     publisherId: uuid('publisher_id').references(() => publisher.id, {
       onDelete: 'set null',
     }),
+
+    locked: boolean('locked').default(false).notNull(),
 
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')

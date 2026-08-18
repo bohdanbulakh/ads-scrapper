@@ -143,7 +143,12 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  onFailed(job: Job<AdsFileJobData> | undefined, error: Error): void {
+  async onFailed(job: Job<AdsFileJobData>, error: Error): Promise<void> {
     this.logger.error(`Job ${job?.id} failed: ${error.message}`, error.stack);
+
+    const isFinal = job.attemptsMade >= (job.opts.attempts ?? 1);
+    if (isFinal) {
+      await this.publisherDao.unlockById(job.data.publisherId);
+    }
   }
 }

@@ -2,7 +2,7 @@ import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { app, AppSelectModel } from '@/database/schema';
 import { PublisherFetchStatus } from '@/database/schema/publisher-fetch-status';
-import { asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lte, not, or, sql } from 'drizzle-orm';
 
 export type ExpiredAppSelectModel = Pick<
   AppSelectModel,
@@ -16,7 +16,7 @@ export class AppDao {
   async getExpiredBundleIds(limit: number): Promise<ExpiredAppSelectModel[]> {
     return await this.db
       .update(app)
-      .set({ nextToFetchPublisher: sql`now() + interval '10 minutes'` })
+      .set({ locked: true })
       .where(
         inArray(
           app.id,
@@ -24,9 +24,12 @@ export class AppDao {
             .select({ id: app.id })
             .from(app)
             .where(
-              or(
-                lte(app.nextToFetchPublisher, sql`now()`),
-                isNull(app.nextToFetchPublisher),
+              and(
+                not(app.locked),
+                or(
+                  lte(app.nextToFetchPublisher, sql`now()`),
+                  isNull(app.nextToFetchPublisher),
+                ),
               ),
             )
             .orderBy(asc(app.nextToFetchPublisher))
@@ -47,9 +50,14 @@ export class AppDao {
       .set({
         publisherFetchStatus: status,
         ...(publisherId ? { publisherId } : {}),
+        locked: false,
         lastFetchedPublisher: sql`now()`,
         nextToFetchPublisher: sql`now() + interval '7 days'`,
       })
       .where(eq(app.id, id));
+  }
+
+  async unlockById(id: string): Promise<void> {
+    await this.db.update(app).set({ locked: false }).where(eq(app.id, id));
   }
 }
