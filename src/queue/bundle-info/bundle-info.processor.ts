@@ -1,7 +1,6 @@
 import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import gplay from 'google-play-scraper';
 
 import {
   BUNDLE_INFO_QUEUE,
@@ -9,34 +8,22 @@ import {
   BundleInfoJobResult,
 } from '@/queue/bundle-info/bundle-info.constants';
 import { BundleInfoService } from '@/queue/bundle-info/bundle-info.service';
+import { STORE_LISTING_FETCHER } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
+import type { StoreListingFetcher } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
 import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
+import { workerConcurrency } from '@/queue/worker-concurrency';
 import { AppDao } from '@/dao/app.dao';
 import { PublisherDao } from '@/dao/publisher.dao';
-import { BundleSource } from '@/database/schema/bundle-source';
 import { PublisherFetchStatus } from '@/database/schema/publisher-fetch-status';
 
-const FETCH_TIMEOUT_MS = 10_000;
-
-const USER_AGENT = 'ads-scrapper/1.0 (ads.txt crawler)';
-
-const ITUNES_LOOKUP_URL = 'https://itunes.apple.com/lookup';
-
-/** What a store tells us about the developer behind a bundle. */
-interface StoreListing {
-  publisherName: string | null;
-  website: string | null;
-}
-
-interface ItunesLookupResponse {
-  results?: { artistName?: string; sellerUrl?: string }[];
-}
-
-@Processor(BUNDLE_INFO_QUEUE)
+@Processor(BUNDLE_INFO_QUEUE, { concurrency: workerConcurrency() })
 export class BundleInfoProcessor extends ExtendedWorkerHost {
   constructor(
     private readonly bundleInfoService: BundleInfoService,
     private readonly appDao: AppDao,
     private readonly publisherDao: PublisherDao,
+    @Inject(STORE_LISTING_FETCHER)
+    private readonly storeListings: StoreListingFetcher,
   ) {
     super();
   }
@@ -49,11 +36,8 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
     );
 
     // 1. fetch info
-    const listing =
-      source === BundleSource.APP_STORE
-        ? await this.fetchFromAppStore(bundleId)
-        : await this.fetchFromPlayMarket(bundleId);
-    await job.updateProgress(50);
+    const listing = await this.storeListings.fetch(bundleId, source);
+    await job.updateProgress(100 / 3);
 
     if (!listing) {
       this.logger.warn(`No ${source} listing for "${bundleId}"`);
@@ -84,6 +68,8 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
       return { success: false, status: PublisherFetchStatus.NO_DOMAIN };
     }
 
+    await job.updateProgress(100 * (2 / 3));
+
     // The name is cosmetic and the column is NOT NULL, so a nameless listing
     // falls back to its domain rather than losing the row.
     const publisherName = listing.publisherName ?? domain;
@@ -109,71 +95,6 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
       publisherName,
       domain,
     };
-  }
-
-  /**
-   * The iTunes lookup API keys on either the numeric track id or the bundle id,
-   * depending on which one the bundle column happens to hold.
-   */
-  private async fetchFromAppStore(
-    bundleId: string,
-  ): Promise<StoreListing | null> {
-    const key = /^\d+$/.test(bundleId) ? 'id' : 'bundleId';
-    const url = `${ITUNES_LOOKUP_URL}?${key}=${encodeURIComponent(bundleId)}&country=US`;
-
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: { 'user-agent': USER_AGENT, accept: 'application/json' },
-    });
-
-    // An unknown bundle still answers 200 with an empty result list, so a bad
-    // status means upstream trouble — throwing retries with the queue backoff.
-    if (!response.ok) {
-      throw new Error(`itunes.apple.com responded ${response.status}`);
-    }
-
-    const payload = (await response.json()) as ItunesLookupResponse;
-    const result = payload.results?.[0];
-    if (!result) return null;
-
-    return {
-      publisherName: result.artistName ?? null,
-      website: result.sellerUrl ?? null,
-    };
-  }
-
-  /**
-   * Play has no public API, so the listing has to be read off the page. The
-   * scraper owns that mapping — it is positional and Google reshuffles it,
-   * which is not a thing worth re-deriving here.
-   */
-  private async fetchFromPlayMarket(
-    bundleId: string,
-  ): Promise<StoreListing | null> {
-    try {
-      const listing = await gplay.app({
-        appId: bundleId,
-        lang: 'en',
-        country: 'us',
-        requestOptions: {
-          headers: { 'user-agent': USER_AGENT },
-          timeout: { request: FETCH_TIMEOUT_MS },
-        },
-      });
-
-      return {
-        publisherName: listing.developer ?? null,
-        website: listing.developerWebsite ?? null,
-      };
-    } catch (error) {
-      // A bundle that was never published, or has been pulled, answers 404.
-      // Everything else (5xx, timeouts) is transient and retried by the queue.
-      if ((error as { status?: number }).status !== 404) {
-        throw error;
-      }
-
-      return null;
-    }
   }
 
   /**

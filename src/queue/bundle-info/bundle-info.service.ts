@@ -8,27 +8,31 @@ import {
   BundleInfoJobData,
   BundleInfoJobResult,
 } from '@/queue/bundle-info/bundle-info.constants';
+import { ExtendedConfigService } from '@/common/config/extended-config.service';
 import { AppDao } from '@/dao/app.dao';
 
 @Injectable()
 export class BundleInfoService {
+  private readonly targetDepth: number;
+
   constructor(
     private readonly appDao: AppDao,
+    config: ExtendedConfigService,
     @InjectQueue(BUNDLE_INFO_QUEUE)
     private readonly bundleInfoQueue: Queue<
       BundleInfoJobData,
       BundleInfoJobResult
     >,
-  ) {}
+  ) {
+    this.targetDepth = config.get('queue.targetDepth');
+  }
 
   async enqueue(): Promise<void> {
-    const TARGET_DEPTH = 500;
-
     const { waiting, delayed } = await this.bundleInfoQueue.getJobCounts(
       'waiting',
       'delayed',
     );
-    const deficit = TARGET_DEPTH - (waiting + delayed);
+    const deficit = this.targetDepth - (waiting + delayed);
     if (deficit <= 0) return;
 
     const expiredAppInfos = await this.appDao.getExpiredBundleIds(deficit);
