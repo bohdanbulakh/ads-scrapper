@@ -1,5 +1,5 @@
 import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 import {
@@ -7,25 +7,26 @@ import {
   AdsFileJobData,
   AdsFileJobResult,
 } from '@/queue/ads-file/ads-file.constants';
+import { ADS_FILE_FETCHER } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
+import type { AdsFileFetcher } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
 import { AdsFileService } from '@/queue/ads-file/ads-file.service';
 import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
+import { workerConcurrency } from '@/queue/worker-concurrency';
 import { StorageService } from '@/storage/storage.service';
 import { PublisherDao } from '@/dao/publisher.dao';
 import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
 
-const FETCH_TIMEOUT_MS = 10_000;
-
 /** ads.txt is plain text; anything this big is not a real one. */
 const MAX_BYTES = 5 * 1024 * 1024;
 
-const USER_AGENT = 'ads-scrapper/1.0 (ads.txt crawler)';
-
-@Processor(ADS_FILE_QUEUE)
+@Processor(ADS_FILE_QUEUE, { concurrency: workerConcurrency() })
 export class AdsFileProcessor extends ExtendedWorkerHost {
   constructor(
     private readonly adsFileService: AdsFileService,
     private readonly storage: StorageService,
     private readonly publisherDao: PublisherDao,
+    @Inject(ADS_FILE_FETCHER)
+    private readonly adsFiles: AdsFileFetcher,
   ) {
     super();
   }
@@ -37,7 +38,7 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
     this.logger.log(`Processing job ${job.id} for domain "${domain}"`);
 
     // 1. fetch file
-    const response = await this.fetchAdsTxt(domain);
+    const response = await this.adsFiles.fetch(domain);
     await job.updateProgress(50);
 
     if (!response.ok) {
@@ -114,21 +115,6 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
       success: true,
       status: AdsFileFetchStatus.STORED,
     };
-  }
-
-  /**
-   * Network failures and timeouts throw, so the job retries with the queue's
-   * backoff. Redirects are followed, which is normal for ads.txt.
-   */
-  private fetchAdsTxt(domain: string): Promise<Response> {
-    return fetch(`https://${domain}/app-ads.txt`, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: {
-        'user-agent': USER_AGENT,
-        accept: 'text/plain,*/*;q=0.8',
-      },
-    });
   }
 
   private looksLikeHtml(response: Response, body: Buffer): boolean {

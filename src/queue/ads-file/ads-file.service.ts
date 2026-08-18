@@ -8,24 +8,28 @@ import {
   AdsFileJobData,
   AdsFileJobResult,
 } from '@/queue/ads-file/ads-file.constants';
+import { ExtendedConfigService } from '@/common/config/extended-config.service';
 import { PublisherDao } from '@/dao/publisher.dao';
 
 @Injectable()
 export class AdsFileService {
+  private readonly targetDepth: number;
+
   constructor(
     private readonly publisherDao: PublisherDao,
+    config: ExtendedConfigService,
     @InjectQueue(ADS_FILE_QUEUE)
     private readonly adsFileQueue: Queue<AdsFileJobData, AdsFileJobResult>,
-  ) {}
+  ) {
+    this.targetDepth = config.get('queue.targetDepth');
+  }
 
   async enqueue(): Promise<void> {
-    const TARGET_DEPTH = 500;
-
     const { waiting, delayed } = await this.adsFileQueue.getJobCounts(
       'waiting',
       'delayed',
     );
-    const deficit = TARGET_DEPTH - (waiting + delayed);
+    const deficit = this.targetDepth - (waiting + delayed);
     if (deficit <= 0) return;
 
     const expiredAppInfos =
