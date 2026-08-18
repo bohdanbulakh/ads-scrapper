@@ -1,0 +1,13 @@
+{
+  // The root config pins `rootDir` to `src` so `nest build` emits a clean
+  // `dist`. These scripts live outside it and only ever run through ts-node,
+  // so they get their own project rather than widening that one. The `@/*`
+  // mapping is inherited and still resolves against the root config's
+  // directory.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "../src/**/*.ts"]
+}
