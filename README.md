@@ -175,6 +175,132 @@ await this.scrape.enqueue({ source: 'olx', url: 'https://…' });
 Default job options (3 attempts, exponential backoff, completed/failed
 retention) are set once in `queue.module.ts`.
 
+### Fetch scheduling
+
+Each table carries a `next_to_fetch_*` column, and two different things write to
+it:
+
+- **The claim**, in `getExpiredBundleIds` / `getExpiredPublisherDomains`. A
+  dispatcher tick takes the due rows and pushes them **10 minutes** out. That is
+  a lease, not a schedule — it keeps the next tick off a row while its job is in
+  flight, and releases it again if the worker dies mid-job.
+- **The completion**, in `markPublisherFetched` / `markFileFetched`. Once a job
+  finishes it overwrites the lease with the real cadence: **7 days** for an
+  app's publisher lookup, **1 day** for a publisher's app-ads.txt. The file is
+  the thing that actually changes; the publisher behind a bundle rarely does.
+
+Every outcome counts as a completed attempt, `NOT_FOUND` and `REJECTED`
+included, so all of them wait a full cycle. Only a job that *threw* — a 5xx, a
+429, a timeout, after its three attempts are spent — leaves the short lease
+untouched, which is what brings a transient failure back round in minutes rather
+than days.
+
+The cadence lives in one place per table, at the top of the DAO. Both processors
+close out through those two methods precisely so no call site can record a
+status and forget to reschedule the row.
+
+## Seeding test data
+
+Two scripts fill the stack with generated data so the dispatchers and both
+queues can be driven at a realistic size, and clear it again afterwards.
+
+```bash
+# a million apps (the default)
+$ yarn seed
+
+# ten million, wiping whatever is there first
+$ yarn seed --apps 10_000_000 --truncate
+
+# publishers only, to exercise the ads-file queue on its own
+$ yarn seed --publishers 50000
+
+$ yarn seed --help
+```
+
+| flag | default | meaning |
+| --- | --- | --- |
+| `--apps <count>` | `1_000_000` | rows to insert into `apps` |
+| `--publishers <count>` | `0` | rows to insert into `publishers` |
+| `--truncate` | off | empty `apps` + `publishers` first |
+| `--yes` | off | skip the confirmation prompt |
+
+Counts are written as `1000000` or `1_000_000`. Every seeded row is due
+immediately, and 65% of the bundles are `PLAY_MARKET` — the rest are `APP_STORE`
+numeric track ids. Rows are generated inside postgres with `generate_series`, so
+only the row count crosses the wire — ten million apps takes about 90 seconds.
+
+### Fake fetching
+
+The seeded bundle ids are made up. Pointed at the real fetchers they would
+produce ten million App Store and Play lookups that all miss, and get the
+crawler rate-limited long before that. So run the app with `FAKE_FETCH=true`:
+
+```bash
+$ FAKE_FETCH=true LOG_LEVELS=warn,error WORKER_CONCURRENCY=50 yarn start
+```
+
+`FAKE_FETCH` swaps the two network calls — and only those — for stand-ins that
+answer from the bundle id or domain itself. Everything downstream is the real
+code path: the same status transitions, the same publisher upsert, the same
+5 MB ceiling, the same writes to S3. The stand-ins are deterministic, so a given
+bundle id always resolves the same way, and they answer with roughly the mix the
+real stores do:
+
+| store lookup | | app-ads.txt fetch | |
+| --- | --- | --- | --- |
+| `RESOLVED` | 76% | `STORED` | 66% |
+| `NO_DOMAIN` | 16% | `NOT_FOUND` (404 or an HTML error page) | 25% |
+| `NOT_FOUND` | 8% | `REJECTED` (over 5 MB) | 2% |
+| | | 503/429, handed back to the queue's retry | 7% |
+
+The publisher domains come from a bounded pool (`FAKE_FETCH_PUBLISHER_POOL`),
+which is what makes one publisher back many apps the way it does in production —
+and what stops ten million apps from becoming ten million objects in S3. Domains
+are `seed-<n>.example`; `.example` is reserved and never resolves, so a run that
+accidentally starts without `FAKE_FETCH` fails fast instead of crawling someone.
+
+`FAKE_FETCH=true` is rejected outright when `NODE_ENV=production`.
+
+### Throughput knobs
+
+`WORKER_CONCURRENCY` (default 10) is what makes a seeded run move; it is low by
+default because the real processors talk to third parties. `QUEUE_TARGET_DEPTH`
+(default 500) is how many jobs the dispatchers keep queued ahead of the workers,
+and wants to stay comfortably above the concurrency. `LOG_LEVELS` matters more
+than it looks: the processors log a line per job, and at a few thousand jobs a
+second stdout becomes the bottleneck.
+
+Both `apps` and `publishers` carry a **partial** index on their
+`next_to_fetch_*` column, `WHERE NOT locked`, which the dispatchers' claim query
+needs. Two details keep it doing its job, and the claim query has to be written
+to match:
+
+- `next_to_fetch_*` is `NOT NULL DEFAULT now()`, so eligibility is the plain
+  range `next_to_fetch_* <= now()`. Spelling it `<= now() OR ... IS NULL`
+  instead leaves the index scan with no upper bound to stop at: it walks the
+  whole index looking for the NULLs, which sort last. Measured on 2M seeded
+  apps, once the timed backlog drains: 1.6 seconds against 1 millisecond.
+- `WHERE NOT locked` keeps rows that are in flight out of the index entirely.
+  Without it a slow batch parks its rows at the head of the index and every
+  later claim filters past them — 50k locked rows cost 67 milliseconds a tick
+  against 1.8 with the predicate. It is free on the write side, since finishing
+  a job rewrites `next_to_fetch_*` anyway.
+
+### Cleaning up
+
+```bash
+# truncate both tables and drop every queued job
+$ yarn seed:reset
+
+# ...and delete the seeded app-ads.txt objects from the bucket
+$ yarn seed:reset --storage
+```
+
+Stop the app first — a running worker will re-enqueue while this deletes.
+`--storage` only removes keys under the seeded `seed-*.example` domains, so
+files from a real crawl survive; the truncate is not that selective and empties
+both tables outright, which `--keep-db` skips.
+
 ## Compile and run the project
 
 ```bash
