@@ -1,9 +1,12 @@
 import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
-import { app, AppSelectModel } from '@/database/schema';
-import { asc, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { app, AppSelectModel, AppUpdateModel } from '@/database/schema';
+import { asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 
-export type ExpiredAppSelectModel = Pick<AppSelectModel, 'id' | 'bundleId'>;
+export type ExpiredAppSelectModel = Pick<
+  AppSelectModel,
+  'id' | 'bundleId' | 'source'
+>;
 
 @Injectable()
 export class AppDao {
@@ -30,6 +33,10 @@ export class AppDao {
             .for('update', { skipLocked: true }),
         ),
       )
-      .returning({ id: app.id, bundleId: app.bundleId });
+      .returning({ id: app.id, bundleId: app.bundleId, source: app.source });
+  }
+
+  async updateById(id: string, data: AppUpdateModel) {
+    await this.db.update(app).set(data).where(eq(app.id, id));
   }
 }

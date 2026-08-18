@@ -2,6 +2,7 @@ import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   publisher,
+  PublisherInsertModel,
   PublisherSelectModel,
   PublisherUpdateModel,
 } from '@/database/schema';
@@ -40,6 +41,23 @@ export class PublisherDao {
         ),
       )
       .returning({ id: publisher.id, domain: publisher.domain });
+  }
+
+  /**
+   * One publisher backs many apps, so the same domain arrives over and over —
+   * insert it once and refresh the name on later hits.
+   */
+  async upsertByDomain(data: PublisherInsertModel): Promise<string> {
+    const [{ id }] = await this.db
+      .insert(publisher)
+      .values(data)
+      .onConflictDoUpdate({
+        target: publisher.domain,
+        set: { name: data.name },
+      })
+      .returning({ id: publisher.id });
+
+    return id;
   }
 
   async updateById(id: string, data: PublisherUpdateModel) {

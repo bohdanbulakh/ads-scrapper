@@ -35,9 +35,9 @@ export class BundleInfoService {
     if (expiredAppInfos.length === 0) return;
 
     await this.bundleInfoQueue.addBulk(
-      expiredAppInfos.map(({ id: appId, bundleId }) => ({
+      expiredAppInfos.map(({ id: appId, bundleId, source }) => ({
         name: BUNDLE_INFO_JOB,
-        data: { appId, bundleId },
+        data: { appId, bundleId, source },
       })),
     );
   }
