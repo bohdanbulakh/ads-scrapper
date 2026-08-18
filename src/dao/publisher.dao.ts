@@ -5,7 +5,7 @@ import {
   PublisherSelectModel,
   PublisherUpdateModel,
 } from '@/database/schema';
-import { asc, eq, inArray, lte, sql } from 'drizzle-orm';
+import { asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<
   PublisherSelectModel,
@@ -28,7 +28,10 @@ export class PublisherDao {
           this.db
             .select({ id: publisher.id })
             .from(publisher)
-            .where(lte(publisher.nextToFetchFile, sql`now()`))
+            .where(or(
+              lte(publisher.nextToFetchFile, sql`now()`),
+              isNull(publisher.nextToFetchFile),
+            ))
             .orderBy(asc(publisher.nextToFetchFile))
             .limit(limit)
             .for('update', { skipLocked: true }),

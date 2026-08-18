@@ -1,7 +1,7 @@
 import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { app, AppSelectModel } from '@/database/schema';
-import { asc, inArray, lte, sql } from 'drizzle-orm';
+import { asc, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 
 export type ExpiredAppSelectModel = Pick<AppSelectModel, 'id' | 'bundleId'>;
 
@@ -19,7 +19,12 @@ export class AppDao {
           this.db
             .select({ id: app.id })
             .from(app)
-            .where(lte(app.nextToFetchPublisher, sql`now()`))
+            .where(
+              or(
+                lte(app.nextToFetchPublisher, sql`now()`),
+                isNull(app.nextToFetchPublisher),
+              ),
+            )
             .orderBy(asc(app.nextToFetchPublisher))
             .limit(limit)
             .for('update', { skipLocked: true }),
