@@ -1,7 +1,11 @@
 import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
-import { publisher, PublisherSelectModel } from '@/database/schema';
-import { asc, inArray, lte, sql } from 'drizzle-orm';
+import {
+  publisher,
+  PublisherSelectModel,
+  PublisherUpdateModel,
+} from '@/database/schema';
+import { asc, eq, inArray, lte, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<
   PublisherSelectModel,
@@ -31,5 +35,9 @@ export class PublisherDao {
         ),
       )
       .returning({ id: publisher.id, domain: publisher.domain });
+  }
+
+  async updateById(id: string, data: PublisherUpdateModel) {
+    await this.db.update(publisher).set(data).where(eq(publisher.id, id));
   }
 }

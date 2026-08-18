@@ -1,3 +1,5 @@
+import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
+
 export const ADS_FILE_QUEUE = 'ads-file-queue';
 
 export const ADS_FILE_JOB = 'ads-file-domain';
@@ -9,4 +11,5 @@ export interface AdsFileJobData {
 
 export interface AdsFileJobResult {
   success: boolean;
+  status: AdsFileFetchStatus;
 }
