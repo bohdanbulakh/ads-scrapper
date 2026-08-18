@@ -2,7 +2,7 @@ import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { app, AppSelectModel } from '@/database/schema';
 import { PublisherFetchStatus } from '@/database/schema/publisher-fetch-status';
-import { and, asc, eq, inArray, isNull, lte, not, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, lte, not, sql } from 'drizzle-orm';
 
 export type ExpiredAppSelectModel = Pick<
   AppSelectModel,
@@ -24,13 +24,7 @@ export class AppDao {
             .select({ id: app.id })
             .from(app)
             .where(
-              and(
-                not(app.locked),
-                or(
-                  lte(app.nextToFetchPublisher, sql`now()`),
-                  isNull(app.nextToFetchPublisher),
-                ),
-              ),
+              and(not(app.locked), lte(app.nextToFetchPublisher, sql`now()`)),
             )
             .orderBy(asc(app.nextToFetchPublisher))
             .limit(limit)

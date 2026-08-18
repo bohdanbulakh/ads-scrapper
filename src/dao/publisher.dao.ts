@@ -6,7 +6,7 @@ import {
   PublisherSelectModel,
 } from '@/database/schema';
 import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
-import { and, asc, eq, inArray, isNull, lte, not, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, lte, not, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<
   PublisherSelectModel,
@@ -32,10 +32,7 @@ export class PublisherDao {
             .where(
               and(
                 not(publisher.locked),
-                or(
-                  lte(publisher.nextToFetchFile, sql`now()`),
-                  isNull(publisher.nextToFetchFile),
-                ),
+                lte(publisher.nextToFetchFile, sql`now()`),
               ),
             )
             .orderBy(asc(publisher.nextToFetchFile))

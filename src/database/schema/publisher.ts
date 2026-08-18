@@ -6,7 +6,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { app } from '@/database/schema/app';
 import { adsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
 
@@ -18,7 +18,7 @@ export const publisher = pgTable(
     name: text('name').notNull(),
     domain: text('domain').notNull().unique(),
     lastFetchedFile: timestamp('last_fetched_file'),
-    nextToFetchFile: timestamp('next_to_fetch_file'),
+    nextToFetchFile: timestamp('next_to_fetch_file').notNull().defaultNow(),
     fileFetchStatus: adsFileFetchStatus('ads_file_fetch_status'),
 
     locked: boolean('locked').default(false).notNull(),
@@ -29,7 +29,9 @@ export const publisher = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index('publishers_next_to_fetch_file_idx').on(table.nextToFetchFile),
+    index('publishers_next_to_fetch_file_idx')
+      .on(table.nextToFetchFile)
+      .where(sql`not ${table.locked}`),
   ],
 );
 
