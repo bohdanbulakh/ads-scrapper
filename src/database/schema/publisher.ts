@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { app } from '@/database/schema/app';
+import { adsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
 
 export const publisher = pgTable('publishers', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
@@ -9,6 +10,7 @@ export const publisher = pgTable('publishers', {
   domain: text('domain').notNull(),
   lastFetchedFile: timestamp('last_fetched_file'),
   nextToFetchFile: timestamp('next_to_fetch_file'),
+  fileFetchStatus: adsFileFetchStatus('ads_file_fetch_status'),
 
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')

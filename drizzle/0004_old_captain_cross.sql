@@ -1,0 +1,1 @@
+ALTER TABLE "publishers" ADD COLUMN "ads_file_fetch_status" "ads_file_fetch_status";
