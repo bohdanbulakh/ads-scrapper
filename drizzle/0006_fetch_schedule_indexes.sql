@@ -1,0 +1,2 @@
+CREATE INDEX "apps_next_to_fetch_publisher_idx" ON "apps" USING btree ("next_to_fetch_publisher");--> statement-breakpoint
+CREATE INDEX "publishers_next_to_fetch_file_idx" ON "publishers" USING btree ("next_to_fetch_file");

@@ -1,22 +1,28 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { app } from '@/database/schema/app';
 import { adsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
 
-export const publisher = pgTable('publishers', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
+export const publisher = pgTable(
+  'publishers',
+  {
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
 
-  name: text('name').notNull(),
-  domain: text('domain').notNull().unique(),
-  lastFetchedFile: timestamp('last_fetched_file'),
-  nextToFetchFile: timestamp('next_to_fetch_file'),
-  fileFetchStatus: adsFileFetchStatus('ads_file_fetch_status'),
+    name: text('name').notNull(),
+    domain: text('domain').notNull().unique(),
+    lastFetchedFile: timestamp('last_fetched_file'),
+    nextToFetchFile: timestamp('next_to_fetch_file'),
+    fileFetchStatus: adsFileFetchStatus('ads_file_fetch_status'),
 
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('publishers_next_to_fetch_file_idx').on(table.nextToFetchFile),
+  ],
+);
 
 export const publisherRelations = relations(publisher, ({ many }) => ({
   apps: many(app),
