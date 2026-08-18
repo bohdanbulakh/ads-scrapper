@@ -5,11 +5,13 @@ import { AppModule } from '@/app.module';
 import { ExtendedConfigService } from '@/common/config/extended-config.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.enableShutdownHooks();
 
   const config = app.get<ExtendedConfigService>(ExtendedConfigService);
+  app.useLogger(config.get('app.logLevels'));
+
   await app.listen(config.get('app.port'));
 }
 
