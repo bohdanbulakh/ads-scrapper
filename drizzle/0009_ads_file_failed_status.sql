@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ads_file_fetch_status" ADD VALUE 'FAILED' BEFORE 'NOT_FOUND';

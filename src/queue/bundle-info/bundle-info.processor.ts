@@ -144,7 +144,10 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
 
     const isFinal = job.attemptsMade >= (job.opts.attempts ?? 1);
     if (isFinal) {
-      await this.appDao.unlockById(job.data.appId);
+      await this.appDao.markPublisherFetched(
+        job.data.appId,
+        PublisherFetchStatus.FAILED,
+      );
     }
   }
 }

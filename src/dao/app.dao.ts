@@ -50,8 +50,4 @@ export class AppDao {
       })
       .where(eq(app.id, id));
   }
-
-  async unlockById(id: string): Promise<void> {
-    await this.db.update(app).set({ locked: false }).where(eq(app.id, id));
-  }
 }

@@ -148,7 +148,10 @@ export class AdsFileProcessor extends ExtendedWorkerHost {
 
     const isFinal = job.attemptsMade >= (job.opts.attempts ?? 1);
     if (isFinal) {
-      await this.publisherDao.unlockById(job.data.publisherId);
+      await this.publisherDao.markFileFetched(
+        job.data.publisherId,
+        AdsFileFetchStatus.FAILED,
+      );
     }
   }
 }

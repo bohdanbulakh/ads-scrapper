@@ -64,6 +64,20 @@
       "when": 1787089314435,
       "tag": "0008_claim_range_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787096834144,
+      "tag": "0009_ads_file_failed_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787155955142,
+      "tag": "0010_publisher_failed_status",
+      "breakpoints": true
     }
   ]
 }

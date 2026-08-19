@@ -1,0 +1,1 @@
+ALTER TYPE "public"."publisher_fetch_status" ADD VALUE 'FAILED' BEFORE 'NOT_FOUND';

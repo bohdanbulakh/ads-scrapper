@@ -10,12 +10,12 @@ export class TasksDispatcherService {
     private readonly bundleInfoService: BundleInfoService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async adsFileDispatcher(): Promise<void> {
     await this.adsFileService.enqueue();
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async appInfoDispatcher(): Promise<void> {
     await this.bundleInfoService.enqueue();
   }

@@ -67,11 +67,4 @@ export class PublisherDao {
       })
       .where(eq(publisher.id, id));
   }
-
-  async unlockById(id: string): Promise<void> {
-    await this.db
-      .update(publisher)
-      .set({ locked: false })
-      .where(eq(publisher.id, id));
-  }
 }
