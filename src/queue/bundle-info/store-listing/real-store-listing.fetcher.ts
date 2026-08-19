@@ -4,7 +4,7 @@ import {
   StoreListing,
   StoreListingFetcher,
 } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
-import { BundleSource } from '@/database/schema/bundle-source';
+import { BundleSource } from '@/database/schema/enums/bundle-source';
 
 const FETCH_TIMEOUT_MS = 10_000;
 

@@ -14,7 +14,7 @@ import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
 import { workerConcurrency } from '@/queue/worker-concurrency';
 import { AppDao } from '@/dao/app.dao';
 import { PublisherDao } from '@/dao/publisher.dao';
-import { PublisherFetchStatus } from '@/database/schema/publisher-fetch-status';
+import { PublisherFetchStatus } from '@/database/schema/enums/publisher-fetch-status';
 
 @Processor(BUNDLE_INFO_QUEUE, { concurrency: workerConcurrency() })
 export class BundleInfoProcessor extends ExtendedWorkerHost {
