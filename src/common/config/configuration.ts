@@ -1,18 +1,9 @@
-import { AppConfig, appConfig } from '@/common/config/schemas/app-config';
-import {
-  DatabaseConfig,
-  databaseConfig,
-} from '@/common/config/schemas/database-config';
-import {
-  FakeFetchConfig,
-  fakeFetchConfig,
-} from '@/common/config/schemas/fake-fetch-config';
-import { QueueConfig, queueConfig } from '@/common/config/schemas/queue-config';
-import { RedisConfig, redisConfig } from '@/common/config/schemas/redis-config';
-import {
-  StorageConfig,
-  storageConfig,
-} from '@/common/config/schemas/storage-config';
+import { AppConfig, appConfig } from './schemas/app-config';
+import { DatabaseConfig, databaseConfig } from './schemas/database-config';
+import { FakeFetchConfig, fakeFetchConfig } from './schemas/fake-fetch-config';
+import { QueueConfig, queueConfig } from './schemas/queue-config';
+import { RedisConfig, redisConfig } from './schemas/redis-config';
+import { StorageConfig, storageConfig } from './schemas/storage-config';
 
 export interface RootConfig {
   app: AppConfig;

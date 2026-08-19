@@ -1,8 +1,8 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { S3_CLIENT } from '@/storage/storage.constants';
+import { ExtendedConfigService } from '../common/config/extended-config.service';
+import { S3_CLIENT } from './storage.constants';
 
 @Injectable()
 export class StorageService {

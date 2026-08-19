@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build && tsc-alias -p tsconfig.build.json",
+    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start --no-shell",
     "start:dev": "nest start --watch --no-shell",
@@ -17,12 +17,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed": "ts-node --project scripts/tsconfig.json -r ./scripts/lib/register-paths.ts scripts/seed.ts",
-    "seed:reset": "ts-node --project scripts/tsconfig.json -r ./scripts/lib/register-paths.ts scripts/reset-test-data.ts",
+    "seed": "ts-node --project scripts/tsconfig.json scripts/seed.ts",
+    "seed:reset": "ts-node --project scripts/tsconfig.json scripts/reset-test-data.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:debug": "node --inspect-brk -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
@@ -58,7 +58,6 @@
     "drizzle-kit": "0.31.10",
     "eslint": "10.8.1",
     "eslint-config-prettier": "10.1.8",
-    "eslint-plugin-no-relative-import-paths": "1.6.1",
     "eslint-plugin-prettier": "5.5.6",
     "eslint-plugin-unused-imports": "4.4.1",
     "globals": "17.11.0",
@@ -69,8 +68,6 @@
     "ts-jest": "29.4.12",
     "ts-loader": "9.6.2",
     "ts-node": "10.9.2",
-    "tsc-alias": "1.9.1",
-    "tsconfig-paths": "4.2.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.67.0"
   },
@@ -82,9 +79,6 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
-    },
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },

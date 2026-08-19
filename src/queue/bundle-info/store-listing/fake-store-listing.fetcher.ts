@@ -1,11 +1,8 @@
 import { Logger } from '@nestjs/common';
 
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import {
-  StoreListing,
-  StoreListingFetcher,
-} from '@/queue/bundle-info/store-listing/store-listing.fetcher';
-import { applyHash, simulateLatency } from '@/queue/fake/fake-fetch.util';
+import { ExtendedConfigService } from '../../../common/config/extended-config.service';
+import { StoreListing, StoreListingFetcher } from './store-listing.fetcher';
+import { applyHash, simulateLatency } from '../../fake/fake-fetch.util';
 
 const NOT_FOUND_SHARE = 8;
 const NO_WEBSITE_SHARE = 12;

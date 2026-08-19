@@ -1,10 +1,7 @@
 import gplay from 'google-play-scraper';
 
-import {
-  StoreListing,
-  StoreListingFetcher,
-} from '@/queue/bundle-info/store-listing/store-listing.fetcher';
-import { BundleSource } from '@/database/schema/enums/bundle-source';
+import { StoreListing, StoreListingFetcher } from './store-listing.fetcher';
+import { BundleSource } from '../../../database/schema/enums/bundle-source';
 
 const FETCH_TIMEOUT_MS = 10_000;
 

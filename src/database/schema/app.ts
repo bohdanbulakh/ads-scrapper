@@ -6,9 +6,9 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { bundleSource } from '@/database/schema/enums/bundle-source';
-import { publisher } from '@/database/schema/publisher';
-import { publisherFetchStatus } from '@/database/schema/enums/publisher-fetch-status';
+import { bundleSource } from './enums/bundle-source';
+import { publisher } from './publisher';
+import { publisherFetchStatus } from './enums/publisher-fetch-status';
 import { relations, sql } from 'drizzle-orm';
 
 export const app = pgTable(

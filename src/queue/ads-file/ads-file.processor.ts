@@ -6,15 +6,15 @@ import {
   ADS_FILE_QUEUE,
   AdsFileJobData,
   AdsFileJobResult,
-} from '@/queue/ads-file/ads-file.constants';
-import { ADS_FILE_FETCHER } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
-import type { AdsFileFetcher } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
-import { AdsFileService } from '@/queue/ads-file/ads-file.service';
-import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
-import { workerConcurrency } from '@/queue/worker-concurrency';
-import { StorageService } from '@/storage/storage.service';
-import { PublisherDao } from '@/dao/publisher.dao';
-import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
+} from './ads-file.constants';
+import { ADS_FILE_FETCHER } from './ads-file-fetcher/ads-file.fetcher';
+import type { AdsFileFetcher } from './ads-file-fetcher/ads-file.fetcher';
+import { AdsFileService } from './ads-file.service';
+import { ExtendedWorkerHost } from '../extended-worker.host';
+import { workerConcurrency } from '../worker-concurrency';
+import { StorageService } from '../../storage/storage.service';
+import { PublisherDao } from '../../dao/publisher.dao';
+import { AdsFileFetchStatus } from '../../database/schema/ads-file-fetch-status';
 
 /** ads.txt is plain text; anything this big is not a real one. */
 const MAX_BYTES = 5 * 1024 * 1024;

@@ -9,9 +9,9 @@ import {
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
-import * as schema from '@/database/schema';
+import { ExtendedConfigService } from '../common/config/extended-config.service';
+import { DRIZZLE, type DrizzleDatabase } from './database.constants';
+import * as schema from './schema';
 
 @Global()
 @Module({

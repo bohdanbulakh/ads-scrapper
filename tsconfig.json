@@ -13,9 +13,6 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "incremental": true,
     // Must live inside outDir: nest-cli's `deleteOutDir` wipes dist on every
     // build, and a build-info file left outside it makes tsc believe the

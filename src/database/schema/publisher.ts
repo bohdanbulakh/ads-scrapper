@@ -7,8 +7,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
-import { app } from '@/database/schema/app';
-import { adsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
+import { app } from './app';
+import { adsFileFetchStatus } from './ads-file-fetch-status';
 
 export const publisher = pgTable(
   'publishers',

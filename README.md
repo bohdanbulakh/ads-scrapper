@@ -179,8 +179,8 @@ $ yarn db:studio
 
 ```ts
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE, DrizzleDatabase } from '@/database/database.constants';
-import { ads } from '@/database/schema';
+import { DRIZZLE, DrizzleDatabase } from '../database/database.constants';
+import { ads } from '../database/schema';
 
 @Injectable()
 export class AdsService {

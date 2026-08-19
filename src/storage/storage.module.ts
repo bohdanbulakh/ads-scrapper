@@ -8,9 +8,9 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { S3_CLIENT } from '@/storage/storage.constants';
-import { StorageService } from '@/storage/storage.service';
+import { ExtendedConfigService } from '../common/config/extended-config.service';
+import { S3_CLIENT } from './storage.constants';
+import { StorageService } from './storage.service';
 
 @Global()
 @Module({

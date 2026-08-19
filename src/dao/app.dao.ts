@@ -1,7 +1,7 @@
-import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
+import { DRIZZLE, type DrizzleDatabase } from '../database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
-import { app, AppSelectModel } from '@/database/schema';
-import { PublisherFetchStatus } from '@/database/schema/enums/publisher-fetch-status';
+import { app, AppSelectModel } from '../database/schema';
+import { PublisherFetchStatus } from '../database/schema/enums/publisher-fetch-status';
 import { and, asc, eq, inArray, lte, not, sql } from 'drizzle-orm';
 
 export type ExpiredAppSelectModel = Pick<

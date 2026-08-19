@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { AdsFileFetcher } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
-import { applyHash, simulateLatency } from '@/queue/fake/fake-fetch.util';
+import { ExtendedConfigService } from '../../../common/config/extended-config.service';
+import { AdsFileFetcher } from './ads-file.fetcher';
+import { applyHash, simulateLatency } from '../../fake/fake-fetch.util';
 
 /**
  * Cumulative shares of the outcome space, in percent. Between them they cover

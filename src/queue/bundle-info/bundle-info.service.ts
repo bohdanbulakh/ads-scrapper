@@ -7,9 +7,9 @@ import {
   BUNDLE_INFO_QUEUE,
   BundleInfoJobData,
   BundleInfoJobResult,
-} from '@/queue/bundle-info/bundle-info.constants';
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { AppDao } from '@/dao/app.dao';
+} from './bundle-info.constants';
+import { ExtendedConfigService } from '../../common/config/extended-config.service';
+import { AppDao } from '../../dao/app.dao';
 
 @Injectable()
 export class BundleInfoService {

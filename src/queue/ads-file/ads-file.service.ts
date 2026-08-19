@@ -7,9 +7,9 @@ import {
   ADS_FILE_JOB,
   AdsFileJobData,
   AdsFileJobResult,
-} from '@/queue/ads-file/ads-file.constants';
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { PublisherDao } from '@/dao/publisher.dao';
+} from './ads-file.constants';
+import { ExtendedConfigService } from '../../common/config/extended-config.service';
+import { PublisherDao } from '../../dao/publisher.dao';
 
 @Injectable()
 export class AdsFileService {

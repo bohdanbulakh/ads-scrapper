@@ -1,5 +1,5 @@
-import { BundleSource } from '@/database/schema/enums/bundle-source';
-import { PublisherFetchStatus } from '@/database/schema/enums/publisher-fetch-status';
+import { BundleSource } from '../../database/schema/enums/bundle-source';
+import { PublisherFetchStatus } from '../../database/schema/enums/publisher-fetch-status';
 
 export const BUNDLE_INFO_QUEUE = 'bundle-info-queue';
 

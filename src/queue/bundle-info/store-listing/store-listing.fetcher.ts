@@ -1,4 +1,4 @@
-import { BundleSource } from '@/database/schema/enums/bundle-source';
+import { BundleSource } from '../../../database/schema/enums/bundle-source';
 
 /** Injection token for {@link StoreListingFetcher}. */
 export const STORE_LISTING_FETCHER = 'STORE_LISTING_FETCHER';

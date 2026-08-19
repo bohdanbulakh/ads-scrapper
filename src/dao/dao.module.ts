@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from '@/database/database.module';
-import { AppDao } from '@/dao/app.dao';
-import { PublisherDao } from '@/dao/publisher.dao';
+import { DatabaseModule } from '../database/database.module';
+import { AppDao } from './app.dao';
+import { PublisherDao } from './publisher.dao';
 
 @Module({
   imports: [DatabaseModule],

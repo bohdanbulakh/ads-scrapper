@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfig, Path, PathValue } from '@nestjs/config';
 
-import { RootConfig } from '@/common/config/configuration';
+import { RootConfig } from './configuration';
 
 /**
  * Overrides the default `ConfigService` to infer types by default and to fail

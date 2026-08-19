@@ -6,15 +6,15 @@ import {
   BUNDLE_INFO_QUEUE,
   BundleInfoJobData,
   BundleInfoJobResult,
-} from '@/queue/bundle-info/bundle-info.constants';
-import { BundleInfoService } from '@/queue/bundle-info/bundle-info.service';
-import { STORE_LISTING_FETCHER } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
-import type { StoreListingFetcher } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
-import { ExtendedWorkerHost } from '@/queue/extended-worker.host';
-import { workerConcurrency } from '@/queue/worker-concurrency';
-import { AppDao } from '@/dao/app.dao';
-import { PublisherDao } from '@/dao/publisher.dao';
-import { PublisherFetchStatus } from '@/database/schema/enums/publisher-fetch-status';
+} from './bundle-info.constants';
+import { BundleInfoService } from './bundle-info.service';
+import { STORE_LISTING_FETCHER } from './store-listing/store-listing.fetcher';
+import type { StoreListingFetcher } from './store-listing/store-listing.fetcher';
+import { ExtendedWorkerHost } from '../extended-worker.host';
+import { workerConcurrency } from '../worker-concurrency';
+import { AppDao } from '../../dao/app.dao';
+import { PublisherDao } from '../../dao/publisher.dao';
+import { PublisherFetchStatus } from '../../database/schema/enums/publisher-fetch-status';
 
 @Processor(BUNDLE_INFO_QUEUE, { concurrency: workerConcurrency() })
 export class BundleInfoProcessor extends ExtendedWorkerHost {

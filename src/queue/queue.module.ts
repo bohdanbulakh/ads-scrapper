@@ -1,22 +1,22 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
-import { BUNDLE_INFO_QUEUE } from '@/queue/bundle-info/bundle-info.constants';
-import { BundleInfoProcessor } from '@/queue/bundle-info/bundle-info.processor';
-import { BundleInfoService } from '@/queue/bundle-info/bundle-info.service';
-import { FakeStoreListingFetcher } from '@/queue/bundle-info/store-listing/fake-store-listing.fetcher';
-import { RealStoreListingFetcher } from '@/queue/bundle-info/store-listing/real-store-listing.fetcher';
-import { STORE_LISTING_FETCHER } from '@/queue/bundle-info/store-listing/store-listing.fetcher';
+import { ExtendedConfigService } from '../common/config/extended-config.service';
+import { BUNDLE_INFO_QUEUE } from './bundle-info/bundle-info.constants';
+import { BundleInfoProcessor } from './bundle-info/bundle-info.processor';
+import { BundleInfoService } from './bundle-info/bundle-info.service';
+import { FakeStoreListingFetcher } from './bundle-info/store-listing/fake-store-listing.fetcher';
+import { RealStoreListingFetcher } from './bundle-info/store-listing/real-store-listing.fetcher';
+import { STORE_LISTING_FETCHER } from './bundle-info/store-listing/store-listing.fetcher';
 import { ScheduleModule } from '@nestjs/schedule';
-import { DaoModule } from '@/dao/dao.module';
-import { TasksDispatcherService } from '@/queue/tasks-dispatcher.service';
-import { AdsFileService } from '@/queue/ads-file/ads-file.service';
-import { AdsFileProcessor } from '@/queue/ads-file/ads-file.processor';
-import { ADS_FILE_QUEUE } from '@/queue/ads-file/ads-file.constants';
-import { ADS_FILE_FETCHER } from '@/queue/ads-file/ads-file-fetcher/ads-file.fetcher';
-import { FakeAdsFileFetcher } from '@/queue/ads-file/ads-file-fetcher/fake-ads-file.fetcher';
-import { RealAdsFileFetcher } from '@/queue/ads-file/ads-file-fetcher/real-ads-file.fetcher';
+import { DaoModule } from '../dao/dao.module';
+import { TasksDispatcherService } from './tasks-dispatcher.service';
+import { AdsFileService } from './ads-file/ads-file.service';
+import { AdsFileProcessor } from './ads-file/ads-file.processor';
+import { ADS_FILE_QUEUE } from './ads-file/ads-file.constants';
+import { ADS_FILE_FETCHER } from './ads-file/ads-file-fetcher/ads-file.fetcher';
+import { FakeAdsFileFetcher } from './ads-file/ads-file-fetcher/fake-ads-file.fetcher';
+import { RealAdsFileFetcher } from './ads-file/ads-file-fetcher/real-ads-file.fetcher';
 
 @Global()
 @Module({

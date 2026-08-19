@@ -17,8 +17,8 @@ import {
 import { Queue } from 'bullmq';
 import { parseArgs } from 'node:util';
 
-import { ADS_FILE_QUEUE } from '@/queue/ads-file/ads-file.constants';
-import { BUNDLE_INFO_QUEUE } from '@/queue/bundle-info/bundle-info.constants';
+import { ADS_FILE_QUEUE } from '../src/queue/ads-file/ads-file.constants';
+import { BUNDLE_INFO_QUEUE } from '../src/queue/bundle-info/bundle-info.constants';
 import {
   confirm,
   countRows,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BundleInfoService } from '@/queue/bundle-info/bundle-info.service';
-import { AdsFileService } from '@/queue/ads-file/ads-file.service';
+import { BundleInfoService } from './bundle-info/bundle-info.service';
+import { AdsFileService } from './ads-file/ads-file.service';
 
 @Injectable()
 export class TasksDispatcherService {

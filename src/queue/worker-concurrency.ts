@@ -1,4 +1,4 @@
-import { DEFAULT_WORKER_CONCURRENCY } from '@/common/config/schemas/queue-config';
+import { DEFAULT_WORKER_CONCURRENCY } from '../common/config/schemas/queue-config';
 
 /**
  * `@Processor()` options are evaluated when the decorator runs — at import

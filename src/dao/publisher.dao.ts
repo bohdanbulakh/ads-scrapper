@@ -1,11 +1,11 @@
-import { DRIZZLE, type DrizzleDatabase } from '@/database/database.constants';
+import { DRIZZLE, type DrizzleDatabase } from '../database/database.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   publisher,
   PublisherInsertModel,
   PublisherSelectModel,
-} from '@/database/schema';
-import { AdsFileFetchStatus } from '@/database/schema/ads-file-fetch-status';
+} from '../database/schema';
+import { AdsFileFetchStatus } from '../database/schema/ads-file-fetch-status';
 import { and, asc, eq, inArray, lte, not, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<

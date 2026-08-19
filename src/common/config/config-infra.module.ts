@@ -1,9 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 
-import { configuration } from '@/common/config/configuration';
-import { validationSchema } from '@/common/config/env.validation';
-import { ExtendedConfigService } from '@/common/config/extended-config.service';
+import { configuration } from './configuration';
+import { validationSchema } from './env.validation';
+import { ExtendedConfigService } from './extended-config.service';
 
 @Global()
 @Module({
