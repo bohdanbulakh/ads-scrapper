@@ -1,29 +1,50 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ads-scrapper
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A crawler for publisher `app-ads.txt` files, built on NestJS + BullMQ.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Given a table of mobile app bundle ids, it resolves each one to its developer's
+domain through the App Store / Play listing, then fetches `app-ads.txt` from that
+domain and stores the file in S3. Both halves run continuously on a schedule, so
+the data refreshes itself rather than being a one-off import.
 
-## Description
+The app has **no HTTP API** — there are no controllers. It listens on `PORT`
+only so the process holds a port; everything is driven by cron and queues.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## How it works
+
+```
+apps (bundle_id, source)
+  ──► bundle-info-queue ──► store listing lookup ──► publishers row (upsert by domain)
+                                                        │
+publishers (domain) ◄───────────────────────────────────┘
+  ──► ads-file-queue    ──► GET https://<domain>/app-ads.txt ──► s3://<bucket>/publishers/<domain>/ads.txt
+```
+
+**Stage 1 — `src/queue/bundle-info/`.** Takes an app's bundle id, looks the
+listing up (iTunes lookup API for `APP_STORE`, `google-play-scraper` for
+`PLAY_MARKET`), reduces the developer website to a bare hostname, and upserts a
+`publishers` row on that domain. Many apps collapse onto one publisher, which is
+the point — the file is fetched once per domain, not once per app.
+
+**Stage 2 — `src/queue/ads-file/`.** Takes a publisher domain, fetches
+`https://<domain>/app-ads.txt`, and puts the body in the bucket. The outcome is
+recorded on the row either way.
+
+Each stage records a status and its own next-fetch time:
+
+| `apps.publisher_fetch_status` | meaning |
+| --- | --- |
+| `RESOLVED` | listing had a usable website; `publisher_id` is set |
+| `NO_DOMAIN` | listing exists, but no usable developer website on it |
+| `NOT_FOUND` | no listing for that bundle id |
+| `FAILED` | the job threw and used up its retries |
+
+| `publishers.ads_file_fetch_status` | meaning |
+| --- | --- |
+| `STORED` | body written to the bucket |
+| `NOT_FOUND` | 404, or a 200 that is really an HTML error page |
+| `REJECTED` | over the 5 MB ceiling — not a real `app-ads.txt` |
+| `FAILED` | the job threw and used up its retries |
 
 ## Project setup
 
@@ -72,6 +93,9 @@ healthy, creates `S3_BUCKET` if it is missing and exits `0`. Nothing else
 creates the bucket, so a fresh `docker compose up -d` is enough to get the app
 writing files.
 
+Compose runs the dependencies only — the app itself is not containerised here,
+it runs on the host with `yarn start:dev`.
+
 ### Web UIs
 
 | UI | URL | Credentials |
@@ -103,8 +127,10 @@ Use `localhost` in `DATABASE_URL`/`REDIS_HOST` when running the app on the host,
 or the service names `postgres`/`redis` when running it inside the compose
 network.
 
-The app reads `DATABASE_URL` and `REDIS_*`; `POSTGRES_*` exists only to configure
-the postgres container and the published host port. Keep the two in sync.
+The app reads `DATABASE_URL`, `REDIS_*` and `S3_*`; `POSTGRES_*` and `MINIO_*`
+exist only to configure the containers and the published host ports. Keep the
+two sides in sync — `S3_ACCESS_KEY`/`S3_SECRET_KEY` are the same pair as
+`MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`.
 
 ### Config layer
 
@@ -114,16 +140,21 @@ reads `process.env`, and an `xEnvSchema` object of Joi rules.
 
 ```
 src/common/config/
-  schemas/app-config.ts        AppConfig      | appConfig()      | appEnvSchema
-  schemas/database-config.ts   DatabaseConfig | databaseConfig() | databaseEnvSchema
-  schemas/redis-config.ts      RedisConfig    | redisConfig()    | redisEnvSchema
-  configuration.ts             RootConfig — composes the factories
-  env.validation.ts            spreads the rule objects into one Joi.object()
-  config-infra.module.ts       ConfigInfraModule (global)
-  extended-config.service.ts   ExtendedConfigService
+  schemas/app-config.ts         AppConfig       | appConfig()       | appEnvSchema
+  schemas/database-config.ts    DatabaseConfig  | databaseConfig()  | databaseEnvSchema
+  schemas/fake-fetch-config.ts  FakeFetchConfig | fakeFetchConfig() | fakeFetchEnvSchema
+  schemas/queue-config.ts       QueueConfig     | queueConfig()     | queueEnvSchema
+  schemas/redis-config.ts       RedisConfig     | redisConfig()     | redisEnvSchema
+  schemas/storage-config.ts     StorageConfig   | storageConfig()   | storageEnvSchema
+  configuration.ts              RootConfig — composes the factories
+  env.validation.ts             spreads the rule objects into one Joi.object()
+  config-infra.module.ts        ConfigInfraModule (global)
+  extended-config.service.ts    ExtendedConfigService
 ```
 
-Adding a variable means touching one schema file plus `configuration.ts`.
+Adding a variable means touching one schema file and registering it in both
+`configuration.ts` (the `RootConfig` field and its factory) and
+`env.validation.ts` (the spread of its rule object).
 
 Config is read through `ExtendedConfigService`, which infers types from
 `RootConfig` and throws on a missing path instead of returning `undefined`:
@@ -135,6 +166,12 @@ this.config.get('database.url'); // string
 this.config.get('redis.port'); // number
 this.config.get('redis.nope'); // Error: NotFoundConfig: redis.nope
 ```
+
+The one setting that cannot come from here is `WORKER_CONCURRENCY`:
+`@Processor({ concurrency })` is evaluated when the decorator runs, at import
+time, before Nest has built the container. `src/queue/worker-concurrency.ts`
+reads `process.env` directly for that window; the variable is still declared in
+`queue-config.ts` so it stays validated and documented with the rest.
 
 ### Validation
 
@@ -151,10 +188,10 @@ and `.unknown(true)` lets unrelated variables (including the `POSTGRES_*` ones
 that only docker-compose reads) pass through.
 
 The Joi schema is the single source of truth for defaults and required-ness —
-`DATABASE_URL` and `REDIS_PASSWORD` are required, everything else defaults.
-Joi's defaults are written back onto `process.env` before the config factories
-run, so add new variables to the schema rather than defaulting them at the point
-of use.
+`DATABASE_URL`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` and
+`S3_BUCKET` are required, everything else defaults. Joi's defaults are written
+back onto `process.env` before the config factories run, so add new variables to
+the schema rather than defaulting them at the point of use.
 
 ## Database (Drizzle ORM)
 
@@ -175,61 +212,114 @@ $ yarn db:push
 $ yarn db:studio
 ```
 
-`DatabaseModule` is global and exports the `DRIZZLE` provider:
+Two tables: `apps` (one row per bundle id) and `publishers` (one row per
+domain), joined by a nullable `apps.publisher_id`. Postgres enums back the two
+status columns, each paired with a TypeScript `enum` of the same name.
+
+`DatabaseModule` is global and exports the `DRIZZLE` provider, but queries belong
+in a DAO under `src/dao/` — the processors depend on `AppDao` / `PublisherDao`
+and never touch drizzle directly:
 
 ```ts
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE, DrizzleDatabase } from '../database/database.constants';
-import { ads } from '../database/schema';
+import { DRIZZLE, type DrizzleDatabase } from '../database/database.constants';
+import { app } from '../database/schema';
 
 @Injectable()
-export class AdsService {
+export class AppDao {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDatabase) {}
 
   findAll() {
-    return this.db.select().from(ads);
+    return this.db.select().from(app);
   }
 }
 ```
 
+`onModuleInit` probes the pool once at boot, so an unreachable database exits the
+process instead of surfacing later as a failure on every job.
+
 ## Queues (BullMQ)
 
-`QueueModule` is global, configures the BullMQ Redis connection from `.env` and
-registers the `scrape` queue. Producer: `AdsFileService`, consumer:
-`AdsFileProcessor` (`src/queue/`).
+`QueueModule` is global. It configures the BullMQ redis connection from `.env`
+and registers both queues:
 
-```ts
-constructor(private readonly scrape: ScrapeService) {}
+| queue | producer | consumer | job data |
+| --- | --- | --- | --- |
+| `bundle-info-queue` | `BundleInfoService` | `BundleInfoProcessor` | `{ appId, bundleId, source }` |
+| `ads-file-queue` | `AdsFileService` | `AdsFileProcessor` | `{ publisherId, domain }` |
 
-await this.scrape.enqueue({ source: 'olx', url: 'https://…' });
-```
+Queue name, job name and the job data/result types for each queue live together
+in that queue's `*.constants.ts`. Default job options (3 attempts, exponential
+backoff, completed/failed retention) are set once in `queue.module.ts`.
 
-Default job options (3 attempts, exponential backoff, completed/failed
-retention) are set once in `queue.module.ts`.
+### Dispatching
 
-### Fetch scheduling
+`TasksDispatcherService` runs both dispatchers on a 30-second cron. Neither
+drains its table: `enqueue()` reads the queue's `waiting + delayed` count and
+claims only the difference from `QUEUE_TARGET_DEPTH`, so the deficit becomes the
+`LIMIT` of the claim query and redis never holds more than a few hundred jobs
+regardless of how many rows are due.
 
-Each table carries a `next_to_fetch_*` column, and two different things write to
-it:
+The processors also call `enqueue()` on the worker's `drained` event, so a busy
+run refills itself instead of idling until the next tick.
+`ExtendedWorkerHost.isShuttingDown` suppresses that during shutdown — otherwise a
+closing worker would re-enqueue on its way out.
 
-- **The claim**, in `getExpiredBundleIds` / `getExpiredPublisherDomains`. A
-  dispatcher tick takes the due rows and pushes them **10 minutes** out. That is
-  a lease, not a schedule — it keeps the next tick off a row while its job is in
-  flight, and releases it again if the worker dies mid-job.
-- **The completion**, in `markPublisherFetched` / `markFileFetched`. Once a job
-  finishes it overwrites the lease with the real cadence: **7 days** for an
-  app's publisher lookup, **1 day** for a publisher's app-ads.txt. The file is
-  the thing that actually changes; the publisher behind a bundle rarely does.
+### Claiming rows
 
-Every outcome counts as a completed attempt, `NOT_FOUND` and `REJECTED`
-included, so all of them wait a full cycle. Only a job that *threw* — a 5xx, a
-429, a timeout, after its three attempts are spent — leaves the short lease
-untouched, which is what brings a transient failure back round in minutes rather
-than days.
+Claiming lives only in the DAOs. `getExpiredBundleIds` /
+`getExpiredPublisherDomains` are a single `UPDATE ... SET locked = true` over a
+`SELECT ... FOR UPDATE SKIP LOCKED` subquery, returning the claimed rows in one
+round trip — two dispatcher ticks, or two app instances, can never take the same
+row.
 
-The cadence lives in one place per table, at the top of the DAO. Both processors
-close out through those two methods precisely so no call site can record a
-status and forget to reschedule the row.
+`locked` is what keeps a row out of the next tick while its job is in flight;
+`next_to_fetch_*` is the schedule. Only the completion side —
+`markPublisherFetched` / `markFileFetched` — writes either one back: it clears
+`locked` and sets the real cadence, **7 days** for an app's publisher lookup,
+**1 day** for a publisher's `app-ads.txt`. The file is the thing that actually
+changes; the publisher behind a bundle rarely does.
+
+Every terminal outcome goes through those two methods, `NOT_FOUND`, `NO_DOMAIN`
+and `REJECTED` included, so no call site can record a status and forget to
+release and reschedule the row. The cadence itself is written in one place per
+table, in the DAO.
+
+One consequence worth knowing: a process killed mid-job leaves its claimed rows
+`locked = true`, and nothing resets them — there is no lease expiry. After a hard
+stop, clear them by hand (`UPDATE apps SET locked = false WHERE locked`) or reset
+the test data.
+
+### Retries
+
+A processor **returns** a result for anything final and **throws** only for what
+is worth retrying. The ads-file processor throws on 5xx and 429; a 404, an HTML
+page served with a 200, or a body over 5 MB are all status writes, not errors.
+BullMQ retries a thrown job three times with exponential backoff, and
+`@OnWorkerEvent('failed')` writes `FAILED` only once `attemptsMade` has caught up
+with `opts.attempts`. Until then the row stays locked and in flight, which is
+what brings a transient failure back round in minutes rather than after a full
+cadence.
+
+### Fetchers
+
+The two network calls sit behind injection tokens — `STORE_LISTING_FETCHER` and
+`ADS_FILE_FETCHER` — and `queue.module.ts` picks the real or the fake
+implementation from `fakeFetch.enabled` at startup. Nothing downstream of the
+fetch knows which one it got. Anything else that talks to a third party should
+follow the same shape: interface and token in one file, real and fake
+implementations beside it.
+
+## Storage (S3 / MinIO)
+
+`StorageModule` is global and wraps one `S3Client`. Files are written to
+`publishers/<domain>/ads.txt` as `text/plain; charset=utf-8` — one object per
+publisher, overwritten on each refetch.
+
+`onModuleInit` sends a `HeadBucket`, so a missing bucket or bad credentials stop
+the boot with a message naming the variables to check rather than failing on the
+first stored file. `S3_FORCE_PATH_STYLE` stays `true` for MinIO
+(`host/bucket`) and goes `false` against real AWS (`bucket.host`).
 
 ## Seeding test data
 
@@ -275,15 +365,22 @@ $ FAKE_FETCH=true LOG_LEVELS=warn,error WORKER_CONCURRENCY=50 yarn start
 answer from the bundle id or domain itself. Everything downstream is the real
 code path: the same status transitions, the same publisher upsert, the same
 5 MB ceiling, the same writes to S3. The stand-ins are deterministic, so a given
-bundle id always resolves the same way, and they answer with roughly the mix the
-real stores do:
+bundle id always resolves the same way, and they cover every branch the
+processors have:
 
 | store lookup | | app-ads.txt fetch | |
 | --- | --- | --- | --- |
-| `RESOLVED` | 76% | `STORED` | 66% |
+| `RESOLVED` | 76% | `STORED` | 71% |
 | `NO_DOMAIN` | 16% | `NOT_FOUND` (404 or an HTML error page) | 25% |
 | `NOT_FOUND` | 8% | `REJECTED` (over 5 MB) | 2% |
-| | | 503/429, handed back to the queue's retry | 7% |
+| | | 429, handed back to the queue's retry | 2% |
+
+The `NO_DOMAIN` share includes listings whose website is there but unusable — an
+`ftp://` URL, `localhost`, a literal `N/A` — so the domain parsing gets
+exercised too. Stored bodies are empty: what is being rehearsed is the path, not
+the content. `FAKE_FETCH_FAILURE_RATE` (default `0`) layers random throws on top
+of both stand-ins to exercise the retry path; unlike everything else about them
+it is random rather than derived, so a retry can succeed.
 
 The publisher domains come from a bounded pool (`FAKE_FETCH_PUBLISHER_POOL`),
 which is what makes one publisher back many apps the way it does in production —
@@ -359,9 +456,16 @@ PID will still orphan the app. Point such configs at
 `node_modules/.bin/nest start --watch --no-shell` directly, or enable
 "kill process tree". To clear a stale one: `pkill -f dist/main`.
 
-The app also refuses to start if the database is unreachable — `onModuleInit`
-probes the pool once and lets the error propagate, so `bootstrap()` logs it and
-exits 1 rather than serving traffic that fails on every request.
+The app also refuses to start if the database or the bucket is unreachable —
+`onModuleInit` probes each once and lets the error propagate, so `bootstrap()`
+logs it and exits 1 rather than running a pipeline that fails on every job.
+
+## Lint and format
+
+```bash
+$ yarn lint     # eslint --fix over src, apps, libs, test, scripts
+$ yarn format   # prettier over src and test
+```
 
 ## Run tests
 
@@ -376,42 +480,6 @@ $ yarn run test:e2e
 $ yarn run test:cov
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+There are no spec files in the repo yet, so all three currently report that no
+tests were found. Unit specs are picked up as `src/**/*.spec.ts`; e2e specs as
+`test/**/*.e2e-spec.ts` under `test/jest-e2e.json`.
