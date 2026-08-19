@@ -1,4 +1,4 @@
-name: adds-scrapper
+name: ads-scrapper
 
 services:
   postgres:
@@ -80,6 +80,76 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    networks:
+      - adds-scrapper
+
+  # --- Web UIs / bootstrap -----------------------------------------------------
+
+  # Bull Board — dashboard for the BullMQ queues (waiting/active/failed job
+  # lists, payloads, stack traces, retry & clean actions). It finds the queues
+  # by SCANning redis for `<BULL_PREFIX>:*` keys, so new queues show up without
+  # being registered here. The image ships bullmq 6.x, matching the app.
+  bull-board:
+    image: venatum/bull-board:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-adds-scrapper}-bull-board
+    restart: unless-stopped
+    # Deliberately no `env_file: .env`: REDIS_HOST there is `localhost`, which is
+    # correct for the app on the host but wrong from inside the compose network.
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required — copy .env.example to .env}
+      REDIS_DB: ${REDIS_DB:-0}
+      # BullMQ (not the legacy `bull`), with BullMQ's default key prefix.
+      BULL_VERSION: BULLMQ
+      BULL_PREFIX: bull
+      BULL_BOARD_TITLE: ads-scrapper queues
+      PORT: 3000
+      # Optional basic auth — the login page only appears when both are set.
+      USER_LOGIN: ${BULL_BOARD_USER:-}
+      USER_PASSWORD: ${BULL_BOARD_PASSWORD:-}
+    ports:
+      # 3000 inside; published on 3001 by default so it does not clash with the
+      # Nest app running on the host.
+      - '${BULL_BOARD_PORT:-3001}:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - adds-scrapper
+
+  # One-shot bucket bootstrap. MinIO's own console at :9001 is the S3 browser,
+  # but it only lists buckets that already exist, and nothing else creates
+  # S3_BUCKET — the app assumes it is there. Exits as soon as the bucket is up.
+  minio-init:
+    image: minio/mc:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-adds-scrapper}-minio-init
+    restart: 'no'
+    env_file:
+      - .env
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$$S3_BUCKET"
+        echo "bucket '$$S3_BUCKET' is ready"
+    depends_on:
+      minio:
+        condition: service_healthy
     networks:
       - adds-scrapper
 

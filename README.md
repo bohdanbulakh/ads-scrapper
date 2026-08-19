@@ -45,10 +45,10 @@ Docker Compose auto-loads the root `.env`, so the same file drives both the
 published host ports in `docker-compose.yml` and the environment passed into the
 containers via `env_file`.
 
-## Infrastructure (PostgreSQL + Redis)
+## Infrastructure (PostgreSQL + Redis + MinIO)
 
 ```bash
-# start postgres + redis in the background
+# start postgres + redis + minio + the web UIs in the background
 $ docker compose up -d
 
 # check health
@@ -60,12 +60,44 @@ $ docker compose logs -f
 # stop (keeps data)
 $ docker compose down
 
-# stop and wipe the postgres/redis volumes
+# stop and wipe the postgres/redis/minio volumes
 $ docker compose down -v
 ```
 
-Data is persisted in the named volumes `postgres_data` and `redis_data`. Redis
-runs with `--requirepass` and AOF persistence enabled.
+Data is persisted in the named volumes `postgres_data`, `redis_data` and
+`minio_data`. Redis runs with `--requirepass` and AOF persistence enabled.
+
+`minio-init` is a one-shot `minio/mc` container: it waits for MinIO to become
+healthy, creates `S3_BUCKET` if it is missing and exits `0`. Nothing else
+creates the bucket, so a fresh `docker compose up -d` is enough to get the app
+writing files.
+
+### Web UIs
+
+| UI | URL | Credentials |
+| --- | --- | --- |
+| **Bull Board** — BullMQ queues | http://localhost:3001 | none by default |
+| **MinIO Console** — S3 browser | http://localhost:9001 | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` |
+
+Bull Board (`venatum/bull-board`, same bullmq major as the app) lists every
+queue it finds under the `bull:*` keys in redis, so `bundle-info-queue` and
+`ads-file-queue` appear without being configured anywhere. Per queue it shows
+the waiting/active/delayed/completed/failed counts, each job's payload, return
+value and stack trace, and lets you retry, promote or clean jobs — it writes to
+redis, so treat it as a dev/ops tool, not a read-only viewer. Set
+`BULL_BOARD_USER` + `BULL_BOARD_PASSWORD` to put it behind a login page, and
+`BULL_BOARD_PORT` to move it off 3001 (3000 is left free for the Nest app).
+
+The MinIO Console ships inside the `minio/minio` image — there is no separate
+container. Recent MinIO releases trimmed it down to the object browser: buckets,
+folders, object preview, upload and download, which is what is needed to inspect
+the fetched `ads.txt` files. For anything beyond that (policies, users, lifecycle
+rules) use `mc`:
+
+```bash
+$ docker compose run --rm --entrypoint sh minio-init -c \
+    'mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" && mc ls -r local/"$S3_BUCKET"'
+```
 
 Use `localhost` in `DATABASE_URL`/`REDIS_HOST` when running the app on the host,
 or the service names `postgres`/`redis` when running it inside the compose
