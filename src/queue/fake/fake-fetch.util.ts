@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { setTimeout } from 'node:timers/promises';
 
 export function applyHash(value: string, salt: number): number {
   return createHash('sha256')
@@ -7,12 +8,8 @@ export function applyHash(value: string, salt: number): number {
     .readUInt32BE(0);
 }
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function simulateLatency(baseMs: number): Promise<void> {
   if (baseMs <= 0) return;
 
-  await sleep(Math.round(baseMs * (0.5 + Math.random())));
+  await setTimeout(Math.round(baseMs * (0.5 + Math.random())));
 }
