@@ -97,11 +97,6 @@ export class BundleInfoProcessor extends ExtendedWorkerHost {
     };
   }
 
-  /**
-   * app-ads.txt is served from the developer's own site, so only the host is
-   * kept. A leading `www.` is dropped; deeper subdomains are left alone, since
-   * reducing them to the registrable domain needs a public suffix list.
-   */
   private toDomain(website: string | null): string | null {
     if (!website) return null;
 
