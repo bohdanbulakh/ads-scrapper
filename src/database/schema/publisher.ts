@@ -8,7 +8,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { app } from './app';
-import { adsFileFetchStatus } from './ads-file-fetch-status';
+import { adsFileFetchStatus } from './enums/ads-file-fetch-status';
 
 export const publisher = pgTable(
   'publishers',

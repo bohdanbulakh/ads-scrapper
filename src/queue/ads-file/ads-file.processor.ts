@@ -14,7 +14,7 @@ import { ExtendedWorkerHost } from '../extended-worker.host';
 import { workerConcurrency } from '../worker-concurrency';
 import { StorageService } from '../../storage/storage.service';
 import { PublisherDao } from '../../dao/publisher.dao';
-import { AdsFileFetchStatus } from '../../database/schema/ads-file-fetch-status';
+import { AdsFileFetchStatus } from '../../database/schema/enums/ads-file-fetch-status';
 
 /** ads.txt is plain text; anything this big is not a real one. */
 const MAX_BYTES = 5 * 1024 * 1024;

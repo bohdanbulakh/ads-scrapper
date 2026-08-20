@@ -1,4 +1,4 @@
-import { AdsFileFetchStatus } from '../../database/schema/ads-file-fetch-status';
+import { AdsFileFetchStatus } from '../../database/schema/enums/ads-file-fetch-status';
 
 export const ADS_FILE_QUEUE = 'ads-file-queue';
 
