@@ -18,7 +18,6 @@ export const app = pgTable(
 
     bundleId: text('bundle_id').notNull(),
     source: bundleSource('source').notNull(),
-    lastFetchedPublisher: timestamp('last_fetched_publisher'),
     nextToFetchPublisher: timestamp('next_to_fetch_publisher')
       .notNull()
       .defaultNow(),

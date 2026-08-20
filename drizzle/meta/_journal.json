@@ -78,6 +78,20 @@
       "when": 1787155955142,
       "tag": "0010_publisher_failed_status",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787220871138,
+      "tag": "0011_drop_last_fetched_publisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787221093580,
+      "tag": "0012_small_landau",
+      "breakpoints": true
     }
   ]
 }

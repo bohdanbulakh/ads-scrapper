@@ -5,7 +5,7 @@ import {
   PublisherInsertModel,
   PublisherSelectModel,
 } from '../database/schema';
-import { AdsFileFetchStatus } from '../database/schema/ads-file-fetch-status';
+import { AdsFileFetchStatus } from '../database/schema';
 import { and, asc, eq, inArray, lte, not, sql } from 'drizzle-orm';
 
 export type ExpiredPublisherSelectModel = Pick<
@@ -62,7 +62,6 @@ export class PublisherDao {
       .set({
         fileFetchStatus: status,
         locked: false,
-        lastFetchedFile: sql`now()`,
         nextToFetchFile: sql`now() + interval '1 day'`,
       })
       .where(eq(publisher.id, id));

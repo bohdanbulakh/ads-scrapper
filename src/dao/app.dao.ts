@@ -45,7 +45,6 @@ export class AppDao {
         publisherFetchStatus: status,
         ...(publisherId ? { publisherId } : {}),
         locked: false,
-        lastFetchedPublisher: sql`now()`,
         nextToFetchPublisher: sql`now() + interval '7 days'`,
       })
       .where(eq(app.id, id));

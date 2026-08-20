@@ -17,7 +17,6 @@ export const publisher = pgTable(
 
     name: text('name').notNull(),
     domain: text('domain').notNull().unique(),
-    lastFetchedFile: timestamp('last_fetched_file'),
     nextToFetchFile: timestamp('next_to_fetch_file').notNull().defaultNow(),
     fileFetchStatus: adsFileFetchStatus('ads_file_fetch_status'),
 

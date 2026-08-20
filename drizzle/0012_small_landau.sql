@@ -1,0 +1,1 @@
+ALTER TABLE "publishers" DROP COLUMN "last_fetched_file";
